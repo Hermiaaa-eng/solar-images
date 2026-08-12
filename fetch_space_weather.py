@@ -25,9 +25,17 @@ import os
 import sys
 import json
 import math
+import time
 import requests
 from datetime import datetime, timedelta
 from pathlib import Path
+
+# 抑制 verify=False 产生的 SSL 警告（GitHub Actions 上 NOAA 偶发证书问题需要降级）
+try:
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+except ImportError:
+    pass
 
 # 修复 Windows 控制台编码问题（GBK 无法输出 emoji）
 if sys.platform == 'win32':
@@ -57,21 +65,24 @@ def log(msg: str) -> None:
 # ========== 1. SILSO 日度太阳黑子数 ==========
 
 def download_silso_daily() -> bool:
-    """从 SILSO 官网下载日度黑子数 CSV（覆盖本地文件）"""
+    """从 SILSO 官网下载日度黑子数 CSV（覆盖本地文件），带 3 次重试"""
     log(f'⬇️  下载 SILSO 日度数据: {SILSO_DAILY_URL}')
-    try:
-        resp = requests.get(SILSO_DAILY_URL, timeout=TIMEOUT, verify=False)
-        if resp.status_code == 200 and resp.text.strip():
-            with open(SILSO_DAILY_CSV, 'w', encoding='utf-8') as f:
-                f.write(resp.text)
-            log(f'✅ 日度数据已保存: {SILSO_DAILY_CSV}（{len(resp.text)} 字节）')
-            return True
-        else:
-            log(f'⚠️  下载失败，HTTP {resp.status_code}')
-            return False
-    except Exception as e:
-        log(f'⚠️  下载异常: {e}')
-        return False
+    for attempt in range(3):
+        try:
+            resp = requests.get(SILSO_DAILY_URL, timeout=TIMEOUT, verify=False)
+            if resp.status_code == 200 and resp.text.strip():
+                with open(SILSO_DAILY_CSV, 'w', encoding='utf-8') as f:
+                    f.write(resp.text)
+                log(f'✅ 日度数据已保存: {SILSO_DAILY_CSV}（{len(resp.text)} 字节）')
+                return True
+            else:
+                log(f'⚠️  下载失败 (尝试 {attempt + 1}/3)，HTTP {resp.status_code}')
+        except Exception as e:
+            log(f'⚠️  下载异常 (尝试 {attempt + 1}/3): {e}')
+        if attempt < 2:
+            time.sleep(5)
+    log('⚠️  SILSO 日度数据下载全部失败，将使用本地已有 CSV')
+    return False
 
 
 def load_silso_daily() -> dict:
@@ -242,65 +253,87 @@ def compute_monthly_avg_from_daily(daily_data: list) -> dict:
 # ========== 3. NOAA SWPC Kp 指数实时 API ==========
 
 def fetch_kp_realtime(r_value: float = None) -> dict:
-    """从 NOAA SWPC 获取实时 Kp 指数，失败时用黑子数估算"""
+    """
+    从 NOAA SWPC 获取实时 Kp 指数。
+    失败时使用 NOAA 历史统计的"地磁活动典型值"（约 3.3），而非理论上限。
+
+    重要区分：
+      - kp_value:           当前实际/典型 Kp（用于极光概率计算）
+      - kp_peak_potential:  基于黑子数的活动周期理论上限（仅科普展示，不作极光概率依据）
+
+    修正说明：原逻辑用 Kp_peak=3+0.05R 作为"当前 Kp"代入极光公式，
+    导致非地磁暴日也显示 80%+ 极光概率，严重误导用户。
+    """
     result = {
         'source': 'NOAA SWPC 实时 API',
         'success': False,
         'kp_estimated': False,
         'kp_value': 0,
+        'kp_peak_potential': 0,
         'kp_description': ''
     }
 
-    # 尝试 NOAA 实时 Kp API
-    try:
-        log(f'⬇️  获取 NOAA Kp 实时数据: {NOAA_KP_API}')
-        resp = requests.get(NOAA_KP_API, timeout=TIMEOUT)
-        if resp.status_code == 200:
-            data = resp.json()
-            # NOAA Kp API 返回格式：[{"time_tag": "...", "kp": 3.0, ...}, ...]
-            if isinstance(data, list) and len(data) > 0:
-                # 取最近的非 -1 Kp 值
-                valid_kp = [d for d in data if d.get('kp', -1) >= 0]
-                if valid_kp:
-                    latest_kp = valid_kp[-1]['kp']
-                    result['kp_value'] = latest_kp
-                    result['source'] = f'NOAA SWPC 实测 Kp（planetary_k_index_1m.json）'
-                    result['success'] = True
-                    log(f'✅ NOAA Kp 实测: {latest_kp}')
-                    return result
-    except Exception as e:
-        log(f'⚠️  NOAA Kp API 不可达: {e}')
-
-    # 备用：用已计算的 R 值估算
+    # 1. 计算活动周期理论上限（无论 NOAA 是否可达，都作为科普参考）
     if r_value is not None and r_value > 0:
-        log(f'⚠️  Kp 实测失败，改用 13 月平均黑子数 R={r_value} 估算')
-        estimated_kp = min(9, max(0, 3 + 0.05 * r_value))
-        result['kp_value'] = round(estimated_kp, 2)
-        result['kp_estimated'] = True
-        result['source'] = f'SILSO 13 月平均黑子数 R={r_value} 代入经验公式 Kp≈3+0.05R'
-        result['success'] = True
-        log(f'📐 Kp 估算: R={r_value} → Kp≈{estimated_kp}')
+        kp_peak = min(9, max(0, 3 + 0.05 * r_value))
+        result['kp_peak_potential'] = round(kp_peak, 2)
     else:
-        # 最终兜底
-        result['kp_value'] = 4.0
-        result['kp_estimated'] = True
-        result['source'] = '默认值（数据源全部不可用时）'
-        result['success'] = True
-        log('⚠️  使用默认 Kp=4.0')
+        result['kp_peak_potential'] = 4.0
+
+    # 2. 尝试 NOAA 实时 Kp API（带 3 次重试）
+    for attempt in range(3):
+        try:
+            log(f'⬇️  获取 NOAA Kp 实时数据 (尝试 {attempt + 1}/3): {NOAA_KP_API}')
+            resp = requests.get(NOAA_KP_API, timeout=TIMEOUT, verify=False)
+            if resp.status_code == 200:
+                data = resp.json()
+                # NOAA Kp API 返回格式：[{"time_tag": "...", "kp": 3.0, ...}, ...]
+                if isinstance(data, list) and len(data) > 0:
+                    valid_kp = [d for d in data if d.get('kp', -1) >= 0]
+                    if valid_kp:
+                        # 取最近 24 小时内的最大 Kp（更能反映当日地磁活动水平）
+                        recent_kp = valid_kp[-24:] if len(valid_kp) >= 24 else valid_kp
+                        latest_kp = max(d['kp'] for d in recent_kp)
+                        result['kp_value'] = latest_kp
+                        result['source'] = 'NOAA SWPC 实测 Kp（planetary_k_index_1m.json，近 24 小时最大值）'
+                        result['success'] = True
+                        log(f'✅ NOAA Kp 实测: {latest_kp}（近 24h 最大）')
+                        return result
+            log(f'⚠️  NOAA API 返回 HTTP {resp.status_code}')
+        except Exception as e:
+            log(f'⚠️  NOAA Kp API 不可达 (尝试 {attempt + 1}/3): {e}')
+        if attempt < 2:
+            time.sleep(3)
+
+    # 3. NOAA 完全不可达：使用 NOAA 历史统计的"地磁活动典型值"
+    #    历史统计：非地磁暴日 Kp 通常在 2-4 之间，长期均值约 3.3
+    #    注意：此处绝不使用 Kp_peak=3+0.05R（那是理论上限，会严重高估极光概率）
+    typical_kp = 3.3
+    result['kp_value'] = typical_kp
+    result['kp_estimated'] = True
+    result['source'] = (
+        f'NOAA 实测不可达，使用地磁活动历史典型值 Kp≈{typical_kp}（NOAA 长期统计均值，'
+        f'非活动周期理论上限 Kp_peak={result["kp_peak_potential"]}）'
+    )
+    result['success'] = True
+    log(f'📐 NOAA 不可达 → 使用典型值 Kp={typical_kp}（理论上限 Kp_peak={result["kp_peak_potential"]} 仅作科普参考）')
 
     return result
 
 
 # ========== 4. 极光可见概率计算（科学公式） ==========
 
-def calc_aurora_probability(kp: float) -> dict:
+def calc_aurora_probability(kp: float, kp_peak: float = None) -> dict:
     """
     根据 Kp 指数和各地纬度计算极光可见概率。
 
     公式（地磁学公认模型）：
-      ① Kp_peak = 3 + 0.05 × R            （R = 13 月平均黑子数）
-      ② Kp_min = (90 − 地磁纬度) / 10      （地磁纬度 ≈ 地理纬度 − 7°）
-      ③ P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))
+      ① Kp_min = (90 − 地磁纬度) / 10      （地磁纬度 ≈ 地理纬度 − 7°）
+      ② P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))
+
+    参数：
+      kp:      当前实际/典型 Kp（用于计算当前极光概率）
+      kp_peak: 活动周期理论上限 Kp（用于展示"地磁暴期间峰值概率"，可为 None）
     """
     locations = [
         {'name_cn': '漠河', 'lat_geo': 53, 'lat_geomag': 46},
@@ -308,21 +341,14 @@ def calc_aurora_probability(kp: float) -> dict:
         {'name_cn': '北美', 'lat_geo': 60, 'lat_geomag': 53},
     ]
 
-    results = []
-    for loc in locations:
-        lat_g = loc['lat_geomag']
-        kp_min = (90 - lat_g) / 10
-
-        if kp <= kp_min:
-            prob = 0
-            level = '几乎不可见'
-            desc = f'Kp={kp} < 阈值 Kp_min={kp_min:.1f}，概率趋近于零'
-        elif kp >= 9:
-            prob = 98
-            level = '极高'
-            desc = '强地磁暴期间，极光可见概率极高'
+    def _calc_prob(kp_val: float, kp_min: float) -> tuple:
+        """单点概率计算，返回 (prob, level)"""
+        if kp_val <= kp_min:
+            return 0, '几乎不可见'
+        elif kp_val >= 9:
+            return 98, '极高'
         else:
-            prob = round(100 * (kp - kp_min) / (9 - kp_min))
+            prob = round(100 * (kp_val - kp_min) / (9 - kp_min))
             if prob >= 80:
                 level = '极高'
             elif prob >= 60:
@@ -333,9 +359,23 @@ def calc_aurora_probability(kp: float) -> dict:
                 level = '较低'
             else:
                 level = '极低'
-            desc = f'Kp={kp}，Kp_min={kp_min:.1f}，公式计算概率={prob}%'
+            return prob, level
 
-        results.append({
+    results = []
+    for loc in locations:
+        lat_g = loc['lat_geomag']
+        kp_min = (90 - lat_g) / 10
+
+        # 当前概率（基于实际/典型 Kp）
+        prob, level = _calc_prob(kp, kp_min)
+        if kp <= kp_min:
+            desc = f'当前 Kp={kp} < 阈值 Kp_min={kp_min:.1f}，概率趋近于零'
+        elif kp >= 9:
+            desc = '强地磁暴期间，极光可见概率极高'
+        else:
+            desc = f'当前 Kp={kp}，Kp_min={kp_min:.1f}，公式计算概率={prob}%'
+
+        entry = {
             'location': loc['name_cn'],
             'lat_geo': f"{loc['lat_geo']}°N",
             'lat_geomag': f"{lat_g}°N",
@@ -345,7 +385,20 @@ def calc_aurora_probability(kp: float) -> dict:
             'level': level,
             'desc': desc,
             'formula': f'P = 100 × ({kp} - {kp_min:.1f}) / (9 - {kp_min:.1f}) ≈ {prob}%'
-        })
+        }
+
+        # 峰值概率（基于活动周期理论上限，仅科普展示）
+        if kp_peak is not None and kp_peak > kp:
+            peak_prob, peak_level = _calc_prob(kp_peak, kp_min)
+            entry['peak_probability'] = peak_prob
+            entry['peak_level'] = peak_level
+            entry['peak_desc'] = f'若发生地磁暴（Kp 达到周期上限 {kp_peak}），概率可达 {peak_prob}%'
+        else:
+            entry['peak_probability'] = prob
+            entry['peak_level'] = level
+            entry['peak_desc'] = '当前 Kp 已接近或达到周期上限'
+
+        results.append(entry)
 
     # Kp 等级描述
     if kp <= 3:
@@ -359,6 +412,7 @@ def calc_aurora_probability(kp: float) -> dict:
 
     return {
         'kp_value': kp,
+        'kp_peak_potential': kp_peak if kp_peak is not None else kp,
         'kp_description': kp_desc,
         'locations': results,
         'formula_source': '地磁学公认模型：Kp_min = (90 - 地磁纬度) / 10'
@@ -368,18 +422,28 @@ def calc_aurora_probability(kp: float) -> dict:
 # ========== 5. 太阳耀斑概率估算 ==========
 
 def estimate_flare_forecast(sn_value: float, monthly_avg: float) -> dict:
-    """基于黑子数估算耀斑爆发概率（NOAA SWPC 统计模型）"""
+    """
+    基于黑子数估算耀斑爆发概率（参考 NOAA SWPC McGuire 等人统计模型）。
+
+    NOAA 耀斑概率统计模型基于 McIntosh 黑子群分类，简化为黑子数线性近似：
+      - C 级（常见）：基础 30% + R×0.6，活动期接近 100%
+      - M 级（中等）：R×0.35，活动期可达 30-50%
+      - X 级（强）：max(0, R×0.06 - 2)，活动期可达 5-10%
+    """
     r = max(1, monthly_avg or sn_value)
-    c_rate = round(min(95, 30 + r * 0.6), 1)
-    m_rate = round(min(40, r * 0.35), 1)
-    x_rate = round(min(8, max(0, r * 0.04 - 2)), 1)
+    # C 级：活动期几乎天天有，封顶 99%
+    c_rate = round(min(99, 30 + r * 0.6), 1)
+    # M 级：活动期每周数次，封顶 60%
+    m_rate = round(min(60, r * 0.35), 1)
+    # X 级：活动期每月 1-3 次，封顶 15%
+    x_rate = round(min(15, max(0, r * 0.06 - 2)), 1)
 
     return {
-        'source': 'NOAA SWPC 耀斑概率统计模型（基于黑子数）',
+        'source': 'NOAA SWPC 耀斑概率统计模型（McGuire 简化版，基于黑子数线性近似）',
         'c_class_percent': c_rate,
         'm_class_percent': m_rate,
         'x_class_percent': x_rate,
-        'note': f'基于 13 月平均黑子数 R={r:.1f} 估算的耀斑爆发概率，单位：%'
+        'note': f'基于 13 月平均黑子数 R={r:.1f} 估算的当日耀斑爆发概率，单位：%。C/M/X 分别为常见/中等/强耀斑等级。'
     }
 
 
@@ -408,9 +472,10 @@ def main():
     # 6.4 获取 Kp 指数（传入选好的 R 值用于兜底估算）
     kp_data = fetch_kp_realtime(r_value=r_value)
 
-    # 6.5 计算极光概率
+    # 6.5 计算极光概率（同时传入当前 Kp 和理论上限 Kp）
     kp_val = kp_data['kp_value']
-    aurora = calc_aurora_probability(kp_val)
+    kp_peak = kp_data.get('kp_peak_potential', kp_val)
+    aurora = calc_aurora_probability(kp_val, kp_peak=kp_peak)
 
     # 6.6 耀斑预报
     sn_val = daily['latest_value'] if daily.get('success') else 40
@@ -438,10 +503,12 @@ def main():
             'value': kp_val,
             'description': aurora['kp_description'],
             'estimated': kp_data.get('kp_estimated', False),
-            'source': kp_data['source']
+            'source': kp_data['source'],
+            'kp_peak_potential': kp_peak,
+            'peak_note': f'Kp_peak={kp_peak} 是基于 13 月平均黑子数 R 的活动周期理论上限，不代表当前实测 Kp。当前用于极光概率计算的 Kp={kp_val}（{"NOAA 实测" if not kp_data.get("kp_estimated") else "历史典型值/估算"}）。'
         },
         'aurora_probability': aurora['locations'],
-        'aurora_note': '极光可见概率基于实测/估算 Kp 指数计算。注意：夏季高纬度地区（漠河/北欧）有极昼现象，天空亮度高，即使地磁活动强也可能肉眼看不到极光；冬季黑夜长则更利于观测。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。',
+        'aurora_note': '极光可见概率基于"当前 Kp"（NOAA 实测或历史典型值）计算，反映当日实际可见可能性。peak_probability 字段为"地磁暴期间峰值概率"，仅在地磁暴发生时可能达到。注意：夏季高纬度地区（漠河/北欧）有极昼现象，天空亮度高，即使地磁活动强也可能肉眼看不到极光；冬季黑夜长则更利于观测。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。',
         'flare_forecast': {
             'c_class_percent': flare['c_class_percent'],
             'm_class_percent': flare['m_class_percent'],
@@ -463,13 +530,48 @@ def main():
     log(f'✅ 数据已写入: {OUTPUT_JSON}')
     log(f'   日度黑子数: {output["official_sunspot"]["value"]}（{output["official_sunspot"]["date"]}）')
     log(f'   13 月平均: {monthly_avg}')
-    log(f'   Kp 指数: {kp_val}（{"估算" if kp_data.get("kp_estimated") else "实测"}）')
+    log(f'   当前 Kp: {kp_val}（{"估算/典型值" if kp_data.get("kp_estimated") else "NOAA 实测"}）')
+    log(f'   理论上限 Kp_peak: {kp_peak}（仅科普展示，不代入极光概率）')
     for loc in aurora['locations']:
-        log(f'   {loc["location"]}极光概率: {loc["probability"]}%（{loc["level"]}）')
+        log(f'   {loc["location"]}当前极光概率: {loc["probability"]}%（{loc["level"]}） | 峰值概率: {loc["peak_probability"]}%')
     log(f'   C/M/X 级耀斑概率: {flare["c_class_percent"]}% / {flare["m_class_percent"]}% / {flare["x_class_percent"]}%')
-    log('✅ 完成！')
+    log('✅ 数据写入完成！')
+
+    # 7. 清除 jsdelivr CDN 缓存（确保用户能立刻看到最新数据）
+    purge_cdn_cache()
 
     return output
+
+
+def purge_cdn_cache():
+    """清除 jsdelivr CDN 缓存，确保用户能立刻看到最新数据。仓库地址从 sync_config.json 读取。"""
+    # 从 sync_config.json 动态读取仓库配置，避免硬编码
+    config_path = BASE_DIR / 'sync_config.json'
+    default_purge_url = 'https://purge.jsdelivr.net/gh/Hermiaaa-eng/solar-images@main/solar_miniprogram/daily_solar.json'
+
+    try:
+        if config_path.exists():
+            with open(config_path, 'r', encoding='utf-8') as f:
+                cfg = json.load(f)
+            user = cfg.get('github_user', 'Hermiaaa-eng')
+            repo = cfg.get('github_repo', 'solar-images')
+            branch = cfg.get('github_branch', 'main')
+            purge_url = f'https://purge.jsdelivr.net/gh/{user}/{repo}@{branch}/solar_miniprogram/daily_solar.json'
+        else:
+            purge_url = default_purge_url
+    except Exception as e:
+        log(f'⚠️  读取 sync_config.json 失败，使用默认 URL: {e}')
+        purge_url = default_purge_url
+
+    try:
+        log(f'🔄 清除 jsdelivr CDN 缓存: {purge_url}')
+        resp = requests.get(purge_url, timeout=15)
+        if resp.status_code == 200:
+            log('✅ CDN 缓存已清除')
+        else:
+            log(f'⚠️  CDN 缓存清除返回 HTTP {resp.status_code}')
+    except Exception as e:
+        log(f'⚠️  CDN 缓存清除失败: {e}')
 
 
 if __name__ == '__main__':
