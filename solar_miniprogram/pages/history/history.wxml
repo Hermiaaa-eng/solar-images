@@ -1,0 +1,504 @@
+<!--pages/history/history.wxml - 历史记录页（丰富版 v5）-->
+<view class="container">
+
+  <!-- 页面标题 -->
+  <view class="header">
+    <view class="header-title">📊 太阳活动历史变化</view>
+    <view class="header-subtitle">观察数据，发现规律</view>
+  </view>
+
+  <!-- ===== 新功能 1：太阳活动钟（环形进度条） ===== -->
+  <view class="card cycle-clock-card">
+    <view class="clock-title">🕐 太阳活动钟</view>
+    <view class="clock-canvas-wrap">
+      <canvas
+        canvas-id="cycleClock"
+        style="width:{{clockCanvasSize}}px;height:{{clockCanvasSize}}px;"
+      ></canvas>
+    </view>
+    <view class="clock-info">
+      <view class="clock-info-row">
+        <text class="clock-info-key">当前周期</text>
+        <text class="clock-info-val">第 {{cycleInfo.currentCycle}} 太阳活动周</text>
+      </view>
+      <view class="clock-info-row">
+        <text class="clock-info-key">周期范围</text>
+        <text class="clock-info-val">{{cycleInfo.cycleStart}} - {{cycleInfo.cycleEnd}} 年</text>
+      </view>
+      <view class="clock-info-row">
+        <text class="clock-info-key">当前阶段</text>
+        <text class="clock-info-val clock-phase" style="color:{{cycleInfo.phaseColor}};">{{cycleInfo.phase}}</text>
+      </view>
+      <view class="clock-info-row">
+        <text class="clock-info-key">{{cycleInfo.nextMilestone}}</text>
+        <text class="clock-info-val">{{cycleInfo.nextMilestoneYear}} 年（约 {{cycleInfo.yearsToMin > 0 ? cycleInfo.yearsToMin : cycleInfo.yearsToPeak}} 年后）</text>
+      </view>
+    </view>
+    <view class="clock-legend">
+      <view class="clock-legend-item">
+        <view class="clock-legend-dot" style="background:#66bb6a;"></view>
+        <text>上升期</text>
+      </view>
+      <view class="clock-legend-item">
+        <view class="clock-legend-dot" style="background:#ef5350;"></view>
+        <text>峰值期</text>
+      </view>
+      <view class="clock-legend-item">
+        <view class="clock-legend-dot" style="background:#ff9800;"></view>
+        <text>下降期</text>
+      </view>
+      <view class="clock-legend-item">
+        <view class="clock-legend-dot" style="background:#2196f3;"></view>
+        <text>谷值期</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 指数说明卡片 -->
+  <view class="card index-intro-card">
+    <view class="index-intro-title">📌 关于本指数</view>
+    <view class="index-intro-text">
+      本指数为「<text class="hl-blue-bold">太阳黑子相对数（沃尔夫数）</text>」，是衡量太阳活动强弱的核心指标。
+    </view>
+    <view class="level-legend">
+      <view class="legend-item">
+        <view class="legend-dot dot-high"></view>
+        <text class="legend-label">高活动</text>
+        <text class="legend-range">≥ 100</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-dot dot-medium"></view>
+        <text class="legend-label">中活动</text>
+        <text class="legend-range">50 ~ 100</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-dot dot-low"></view>
+        <text class="legend-label">低活动</text>
+        <text class="legend-range">低于 50</text>
+      </view>
+    </view>
+    <view class="cycle-conclusion">
+      <text class="conclusion-icon">🪐</text>
+      <text class="conclusion-text">{{cycleConclusion}}</text>
+    </view>
+  </view>
+
+  <!-- 时间尺度切换按钮 -->
+  <view class="scale-switcher">
+    <view
+      class="scale-btn {{timeScale === item.key ? 'active' : ''}}"
+      wx:for="{{scaleButtons}}"
+      wx:key="key"
+      data-scale="{{item.key}}"
+      bindtap="onScaleChange">
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 多周期对比开关（仅 11 年尺度显示） -->
+  <view class="compare-toggle-wrap" wx:if="{{timeScale === '11y'}}">
+    <view class="compare-toggle {{compareEnabled ? 'on' : 'off'}}" bindtap="toggleCompare">
+      <text class="toggle-icon">{{compareEnabled ? '✓' : '+'}}</text>
+      <text class="toggle-text">叠加第 24 活动周（上一轮）对比</text>
+    </view>
+  </view>
+
+  <!-- 统计数据卡片 -->
+  <view class="stats-card">
+    <view class="stats-item">
+      <view class="stats-label">最大值</view>
+      <view class="stats-value">{{maxValue}}</view>
+    </view>
+    <view class="stats-item">
+      <view class="stats-label">最小值</view>
+      <view class="stats-value">{{minValue}}</view>
+    </view>
+    <view class="stats-item">
+      <view class="stats-label">平均值</view>
+      <view class="stats-value">{{avgValue}}</view>
+    </view>
+  </view>
+
+  <!-- 折线图卡片 -->
+  <view class="card chart-card">
+    <view class="chart-title-row">
+      <view class="chart-title">📈 太阳活动指数变化趋势</view>
+    </view>
+    <canvas
+      canvas-id="lineChart"
+      style="width:{{canvasWidth}}px;height:{{canvasHeight}}px;margin:0 auto;"
+    ></canvas>
+    <view class="chart-tip">💡 点击列表行可查看详情</view>
+    <view class="chart-legend-row">
+      <view class="legend-chip">
+        <text class="chip-dot chip-high"></text>高活动区
+      </view>
+      <view class="legend-chip">
+        <text class="chip-dot chip-medium"></text>中活动区
+      </view>
+      <view class="legend-chip">
+        <text class="chip-dot chip-low"></text>低活动区
+      </view>
+      <view class="legend-chip">
+        <text class="chip-icon">⚡</text>耀斑高发
+      </view>
+      <view class="legend-chip" wx:if="{{compareEnabled}}">
+        <text class="chip-dash"></text>第 24 周
+      </view>
+    </view>
+  </view>
+
+  <!-- 趋势预判卡片（新增） -->
+  <view class="card trend-card">
+    <view class="trend-header">
+      <text class="trend-icon">🔮</text>
+      <text class="trend-title">趋势预判（未来 6-12 个月）</text>
+    </view>
+    <view class="trend-content">{{trendPrediction}}</view>
+    <view class="trend-note">基于 11 年太阳活动周期规律推演，仅供科普参考</view>
+  </view>
+
+  <!-- ===== 新功能 3：历史大事件锚点 ===== -->
+  <view class="card events-card">
+    <view class="events-title">📜 历史著名太阳事件</view>
+    <view class="events-subtitle">点击查看事件详情</view>
+    <view class="events-timeline">
+      <view
+        class="event-item {{item.severity}}"
+        wx:for="{{historicalEvents}}"
+        wx:key="year"
+        data-idx="{{index}}"
+        bindtap="onEventTap">
+        <view class="event-year">{{item.year}}</view>
+        <view class="event-dot"></view>
+        <view class="event-content">
+          <view class="event-name">{{item.name}}</view>
+          <view class="event-cycle">{{item.cycle}}</view>
+        </view>
+        <view class="event-arrow">›</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 新功能 2：极光可见概率参考 ===== -->
+  <view class="card aurora-card">
+    <view class="aurora-title">🌌 极光可见概率参考</view>
+    <view class="aurora-subtitle">基于 SILSO 日度实测黑子数 {{auroraInfo.currentVal}}（{{auroraInfo.currentDate}}，{{auroraInfo.currentLevel}}）</view>
+
+    <!-- Kp 指数说明：区分当前 Kp 和理论上限 Kp_peak -->
+    <view class="aurora-kp-row">
+      <text class="aurora-kp-label">当前 Kp 指数</text>
+      <text class="aurora-kp-value">{{auroraInfo.kpDisplayValue}}</text>
+      <text class="aurora-kp-desc">{{auroraInfo.kpDisplayDesc}}</text>
+      <text class="aurora-kp-tag" wx:if="{{auroraInfo.kpEstimated}}">历史典型值</text>
+      <text class="aurora-kp-tag" wx:else>NOAA实测</text>
+    </view>
+    <view class="aurora-kp-row aurora-kp-peak-row" wx:if="{{auroraInfo.kpPeakValue !== '—'}}">
+      <text class="aurora-kp-label aurora-kp-peak-label">理论峰值上限</text>
+      <text class="aurora-kp-value aurora-kp-peak-value">{{auroraInfo.kpPeakValue}}</text>
+      <text class="aurora-kp-desc">Kp_peak = 3 + 0.05 × R（仅科普参考）</text>
+      <text class="aurora-kp-tag aurora-kp-peak-tag">理论上限</text>
+    </view>
+    <view class="aurora-kp-explain">⚠️ 当前 Kp 用于极光概率计算（{{auroraInfo.kpEstimated ? 'NOAA 不可达时使用历史典型值 3.3' : 'NOAA SWPC 实测'}}），反映当日实际地磁活动。理论峰值上限 Kp_peak 仅表示当前太阳活动周期下地磁暴可能达到的最高水平，不代表当日实况。</view>
+
+    <view class="aurora-list">
+      <view class="aurora-item">
+        <view class="aurora-location">
+          <text class="aurora-loc-icon">🇨🇳</text>
+          <text class="aurora-loc-name">漠河</text>
+          <text class="aurora-loc-lat">北纬 53°</text>
+        </view>
+        <view class="aurora-prob-wrap">
+          <view class="aurora-prob-bar">
+            <view class="aurora-prob-fill" style="width:{{auroraInfo.mohe.prob}}%;background:linear-gradient(90deg, #66bb6a, #ff9800);"></view>
+          </view>
+          <view class="aurora-prob-text">
+            <text class="aurora-prob-val">{{auroraInfo.mohe.prob}}%</text>
+            <text class="aurora-prob-level">{{auroraInfo.mohe.level}}</text>
+          </view>
+        </view>
+        <view class="aurora-desc">{{auroraInfo.mohe.desc}}</view>
+        <view class="aurora-peak" wx:if="{{auroraInfo.mohe.peakProb > auroraInfo.mohe.prob}}">
+          <text class="aurora-peak-label">🌊 地磁暴期间峰值概率</text>
+          <text class="aurora-peak-val">{{auroraInfo.mohe.peakProb}}%</text>
+          <text class="aurora-peak-desc">{{auroraInfo.mohe.peakDesc}}</text>
+        </view>
+      </view>
+
+      <view class="aurora-item">
+        <view class="aurora-location">
+          <text class="aurora-loc-icon">🇳🇴</text>
+          <text class="aurora-loc-name">北欧</text>
+          <text class="aurora-loc-lat">北纬 60-70°</text>
+        </view>
+        <view class="aurora-prob-wrap">
+          <view class="aurora-prob-bar">
+            <view class="aurora-prob-fill" style="width:{{auroraInfo.nordic.prob}}%;background:linear-gradient(90deg, #2196f3, #6439ff);"></view>
+          </view>
+          <view class="aurora-prob-text">
+            <text class="aurora-prob-val">{{auroraInfo.nordic.prob}}%</text>
+            <text class="aurora-prob-level">{{auroraInfo.nordic.level}}</text>
+          </view>
+        </view>
+        <view class="aurora-desc">{{auroraInfo.nordic.desc}}</view>
+        <view class="aurora-peak" wx:if="{{auroraInfo.nordic.peakProb > auroraInfo.nordic.prob}}">
+          <text class="aurora-peak-label">🌊 地磁暴期间峰值概率</text>
+          <text class="aurora-peak-val">{{auroraInfo.nordic.peakProb}}%</text>
+          <text class="aurora-peak-desc">{{auroraInfo.nordic.peakDesc}}</text>
+        </view>
+      </view>
+
+      <view class="aurora-item">
+        <view class="aurora-location">
+          <text class="aurora-loc-icon">🇺🇸</text>
+          <text class="aurora-loc-name">北美</text>
+          <text class="aurora-loc-lat">北纬 50-70°</text>
+        </view>
+        <view class="aurora-prob-wrap">
+          <view class="aurora-prob-bar">
+            <view class="aurora-prob-fill" style="width:{{auroraInfo.northAmerica.prob}}%;background:linear-gradient(90deg, #ff9800, #ef5350);"></view>
+          </view>
+          <view class="aurora-prob-text">
+            <text class="aurora-prob-val">{{auroraInfo.northAmerica.prob}}%</text>
+            <text class="aurora-prob-level">{{auroraInfo.northAmerica.level}}</text>
+          </view>
+        </view>
+        <view class="aurora-desc">{{auroraInfo.northAmerica.desc}}</view>
+        <view class="aurora-peak" wx:if="{{auroraInfo.northAmerica.peakProb > auroraInfo.northAmerica.prob}}">
+          <text class="aurora-peak-label">🌊 地磁暴期间峰值概率</text>
+          <text class="aurora-peak-val">{{auroraInfo.northAmerica.peakProb}}%</text>
+          <text class="aurora-peak-desc">{{auroraInfo.northAmerica.peakDesc}}</text>
+        </view>
+      </view>
+
+    </view>
+
+    <!-- 公式和数据来源 -->
+    <view class="aurora-formula">
+      <view class="formula-title">📐 计算公式（地磁学公认模型）</view>
+
+      <view class="formula-step">
+        <view class="formula-step-num">①</view>
+        <view class="formula-step-body">
+          <view class="formula-step-name">当前 Kp（用于概率计算）</view>
+          <view class="formula-step-eq">Kp = {{auroraInfo.kpDisplayValue}}（{{auroraInfo.kpEstimated ? '历史典型值' : 'NOAA 实测'}}）</view>
+          <view class="formula-step-note">{{auroraInfo.kpEstimated ? 'NOAA API 不可达时使用长期统计均值 3.3，非理论上限' : '来自 NOAA SWPC planetary_k_index_1m.json'}}</view>
+        </view>
+      </view>
+
+      <view class="formula-step">
+        <view class="formula-step-num">②</view>
+        <view class="formula-step-body">
+          <view class="formula-step-name">由纬度计算极光最低 Kp 阈值</view>
+          <view class="formula-step-eq">Kp_min = (90 − 地磁纬度) / 10</view>
+          <view class="formula-step-note">地磁纬度 ≈ 地理纬度 − 7°（北半球修正）</view>
+        </view>
+      </view>
+
+      <view class="formula-step">
+        <view class="formula-step-num">③</view>
+        <view class="formula-step-body">
+          <view class="formula-step-name">计算极光可见概率（基于当前 Kp）</view>
+          <view class="formula-step-eq">P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))</view>
+          <view class="formula-step-note">Kp = {{auroraInfo.kpDisplayValue}}（当前值），Kp_min 因纬度而异</view>
+        </view>
+      </view>
+
+      <view class="formula-step">
+        <view class="formula-step-num">④</view>
+        <view class="formula-step-body">
+          <view class="formula-step-name">理论峰值概率（仅科普参考）</view>
+          <view class="formula-step-eq">Kp_peak = 3 + 0.05 × R = {{auroraInfo.kpPeakValue}}</view>
+          <view class="formula-step-note">R = 13 月平均黑子数 = {{auroraInfo.snMonthlyAvg}}，代入得地磁暴期间理论上限</view>
+        </view>
+      </view>
+
+      <view class="formula-kpmin-table">
+        <view class="formula-kpmin-title">各观测点 Kp_min 阈值</view>
+        <view class="formula-kpmin-row">
+          <text class="kpmin-loc">🇨🇳 漠河 (53°N, 地磁 46°N)</text>
+          <text class="kpmin-val">Kp_min ≈ 4.4</text>
+        </view>
+        <view class="formula-kpmin-row">
+          <text class="kpmin-loc">🇳🇴 北欧 (65°N, 地磁 58°N)</text>
+          <text class="kpmin-val">Kp_min ≈ 3.2</text>
+        </view>
+        <view class="formula-kpmin-row">
+          <text class="kpmin-loc">🇺🇸 北美 (60°N, 地磁 53°N)</text>
+          <text class="kpmin-val">Kp_min ≈ 3.7</text>
+        </view>
+      </view>
+
+      <view class="formula-source-note">公式来源：地磁学公认模型，参考 NOAA SWPC 与国家空间天气监测预警中心极光椭圆纬度模型</view>
+    </view>
+    <view class="aurora-note">{{auroraInfo.auroraNote}}</view>
+    <view class="aurora-source">📊 数据来源：{{auroraInfo.dataSource}}</view>
+  </view>
+
+  <!-- ===== 新功能 4：观测建议助手 ===== -->
+  <view class="card obs-advice-card">
+    <view class="obs-advice-header">
+      <text class="obs-advice-icon">{{observationAdvice.icon}}</text>
+      <view class="obs-advice-title-wrap">
+        <text class="obs-advice-title">{{observationAdvice.title}}</text>
+        <text class="obs-advice-subtitle">当前黑子数：{{observationAdvice.currentVal}}（{{observationAdvice.currentDate}}，SILSO 实测）</text>
+      </view>
+    </view>
+
+    <!-- 耀斑概率 -->
+    <view class="obs-flare-row" wx:if="{{observationAdvice.cPct > 0}}">
+      <view class="flare-chip flare-c">
+        <text class="flare-chip-grade">C 级</text>
+        <text class="flare-chip-val">{{observationAdvice.cPct}}%</text>
+      </view>
+      <view class="flare-chip flare-m">
+        <text class="flare-chip-grade">M 级</text>
+        <text class="flare-chip-val">{{observationAdvice.mPct}}%</text>
+      </view>
+      <view class="flare-chip flare-x">
+        <text class="flare-chip-grade">X 级</text>
+        <text class="flare-chip-val">{{observationAdvice.xPct}}%</text>
+      </view>
+      <view class="flare-chip-note">{{observationAdvice.note}}</view>
+    </view>
+
+    <view class="obs-advice-items">
+      <view class="obs-advice-item" wx:for="{{observationAdvice.items}}" wx:key="*this">
+        {{item}}
+      </view>
+    </view>
+    <view class="obs-advice-warning">{{observationAdvice.warning}}</view>
+    <view class="obs-advice-source">📊 数据来源：{{observationAdvice.dataSource}}</view>
+  </view>
+
+  <!-- 数据列表（点击可弹窗） -->
+  <view class="card">
+    <view class="title">📋 详细数据（点击查看详情）</view>
+    <view class="history-list">
+      <view
+        class="history-item {{item.levelClass}}"
+        wx:for="{{historyList}}"
+        wx:key="date"
+        data-idx="{{item.idx}}"
+        bindtap="onListItemTap">
+        <view class="history-date">
+          {{item.date}}
+          <text wx:if="{{item.hasFlare}}" class="flare-icon">⚡</text>
+        </view>
+        <view class="history-bar-container">
+          <view class="history-bar" style="width:{{item.value / maxValue * 100}}%;background:{{item.barColor}};"></view>
+        </view>
+        <view class="history-value" style="color:{{item.valueColor}};">{{item.value}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 折叠科普卡片 -->
+  <view class="card knowledge-collapse">
+    <view class="collapse-header" bindtap="toggleKnowledge">
+      <text class="collapse-title">💡 太阳 11 年活动周期小知识</text>
+      <text class="collapse-arrow {{kbOpen ? 'arrow-up' : 'arrow-down'}}">▼</text>
+    </view>
+    <view class="collapse-content {{kbOpen ? 'expanded' : 'collapsed'}}">
+      <view class="kb-section">
+        <view class="kb-question">🔹 什么是太阳活动周期？</view>
+        <view class="kb-answer">太阳黑子数量以约 <text class="hl-orange">11 年</text> 为周期循环变化，从低谷到高峰再回落，称为一个"太阳活动周"。目前处于第 25 周。</view>
+      </view>
+      <view class="kb-section">
+        <view class="kb-question">🔹 为什么重要？</view>
+        <view class="kb-answer">黑子爆发常伴随 <text class="hl-red-bold">耀斑</text> 和 <text class="hl-blue-bold">日冕物质抛射</text>，大量带电粒子冲击地球磁场，可能影响卫星、电网、通信系统。</view>
+      </view>
+      <view class="kb-section">
+        <view class="kb-question">🔹 第 25 活动周现状？</view>
+        <view class="kb-answer">本轮周期峰值约在 <text class="hl-yellow">2024-2025 年</text>，黑子数最高达 200+。目前正处于从峰值向谷值的回落阶段，预计 2030 年前后到达低谷。</view>
+      </view>
+      <view class="kb-section">
+        <view class="kb-question">🔹 沃尔夫数是什么？</view>
+        <view class="kb-answer"><text class="hl-green-bold">R = k × (10g + f)</text>，其中 g 为黑子群数，f 为单个黑子数，k 为观测仪器修正系数。是国际通用的太阳活动量化指标。</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="footer">
+    <text>📊 数据来源：SILSO 比利时皇家天文台 / NOAA SWPC / 地磁学公式</text>
+    <text class="footer-note">本小程序仅供科普参考，实际预报请以官方机构为准</text>
+    <view class="cdn-status">
+      <text class="cdn-status-dot {{cdnStatus === '已更新' ? 'dot-online' : 'dot-local'}}">●</text>
+      <text class="cdn-status-text">官方数据{{cdnStatus}}</text>
+      <text class="cdn-status-time" wx:if="{{cdnUpdateTime}}">（{{cdnUpdateTime}}）</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- ===== 详情弹窗 ===== -->
+<view class="modal-mask" wx:if="{{modalVisible}}" bindtap="closeModal">
+  <view class="modal-content {{modalData.levelClass}}" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">📊 数据详情</text>
+      <text class="modal-close" bindtap="closeModal">✕</text>
+    </view>
+    <view class="modal-body" wx:if="{{modalData}}">
+      <view class="modal-date">{{modalData.date}}</view>
+      <view class="modal-row modal-row-main">
+        <text class="modal-key">黑子数</text>
+        <text class="modal-val modal-val-big">{{modalData.value}}</text>
+      </view>
+      <view class="modal-row">
+        <text class="modal-key">活动等级</text>
+        <text class="modal-val modal-level-tag modal-level-{{modalData.levelClass}}">{{modalData.level}}</text>
+      </view>
+
+      <view class="modal-section-title">⚡ 耀斑分级统计</view>
+      <view class="flare-stats">
+        <view class="flare-stat flare-x">
+          <text class="flare-grade">X 级</text>
+          <text class="flare-count">{{modalData.flares.x}}</text>
+          <text class="flare-desc">最强</text>
+        </view>
+        <view class="flare-stat flare-m">
+          <text class="flare-grade">M 级</text>
+          <text class="flare-count">{{modalData.flares.m}}</text>
+          <text class="flare-desc">中等</text>
+        </view>
+        <view class="flare-stat flare-c">
+          <text class="flare-grade">C 级</text>
+          <text class="flare-count">{{modalData.flares.c}}</text>
+          <text class="flare-desc">常见</text>
+        </view>
+      </view>
+
+      <view class="modal-section-title">🌐 对地影响事件</view>
+      <view class="modal-geo">{{modalData.geoEffect}}</view>
+
+      <view class="modal-link-row">
+        <text class="modal-link-icon">📖</text>
+        <text class="modal-link-text">{{modalData.knowledgeLink}}</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ===== 历史事件详情弹窗 ===== -->
+<view class="modal-mask" wx:if="{{eventModalVisible}}" bindtap="closeEventModal">
+  <view class="modal-content event-modal {{eventModalData.severity}}" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">📜 历史事件详情</text>
+      <text class="modal-close" bindtap="closeEventModal">✕</text>
+    </view>
+    <view class="modal-body" wx:if="{{eventModalData}}">
+      <view class="event-modal-year">{{eventModalData.year}} 年</view>
+      <view class="event-modal-name">{{eventModalData.name}}</view>
+      <view class="event-modal-cycle-tag">{{eventModalData.cycle}}</view>
+      <view class="event-modal-severity severity-{{eventModalData.severity}}">
+        {{eventModalData.severity === 'extreme' ? '🔴 极端事件' : '🟠 严重事件'}}
+      </view>
+      <view class="modal-section-title">📝 事件描述</view>
+      <view class="event-modal-desc">{{eventModalData.desc}}</view>
+      <view class="modal-section-title">📊 估算黑子数</view>
+      <view class="event-modal-value">{{eventModalData.value}}</view>
+      <view class="event-modal-note">💡 该事件已成为太阳活动研究的重要案例</view>
+    </view>
+  </view>
+</view>
