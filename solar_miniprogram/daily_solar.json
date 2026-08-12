@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-12 04:56:20",
+  "generated_at": "2026-08-12 13:05:17",
   "data_source": {
     "sunspot_daily": "SILSO 日度数据（比利时皇家天文台，每日实测）",
-    "sunspot_monthly": "SILSO 月度数据（比利时皇家天文台）",
-    "kp_index": "SILSO 13 月平均黑子数 R=15.7 代入经验公式 Kp≈3+0.05R",
+    "sunspot_monthly": "SILSO 日度数据聚合（从日度实测值计算月均值）",
+    "kp_index": "SILSO 13 月平均黑子数 R=104.0 代入经验公式 Kp≈3+0.05R",
     "aurora_formula": "Kp_peak = 3 + 0.05 × R；Kp_min = (90 − 地磁纬度) / 10；P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))",
     "flare": "NOAA SWPC 耀斑概率统计模型（基于黑子数）"
   },
@@ -15,10 +15,10 @@
     "note": "每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构"
   },
   "official_kp": {
-    "value": 3.79,
-    "description": "Kp=3.79（微扰期，地磁微扰）",
+    "value": 8.2,
+    "description": "Kp=8.2（强地磁暴）",
     "estimated": true,
-    "source": "SILSO 13 月平均黑子数 R=15.7 代入经验公式 Kp≈3+0.05R"
+    "source": "SILSO 13 月平均黑子数 R=104.0 代入经验公式 Kp≈3+0.05R"
   },
   "aurora_probability": [
     {
@@ -26,41 +26,41 @@
       "lat_geo": "53°N",
       "lat_geomag": "46°N",
       "kp_min": 4.4,
-      "kp_current": 3.79,
-      "probability": 0,
-      "level": "几乎不可见",
-      "desc": "Kp=3.79 < 阈值 Kp_min=4.4，概率趋近于零",
-      "formula": "P = 100 × (3.79 - 4.4) / (9 - 4.4) ≈ 0%"
+      "kp_current": 8.2,
+      "probability": 83,
+      "level": "极高",
+      "desc": "Kp=8.2，Kp_min=4.4，公式计算概率=83%",
+      "formula": "P = 100 × (8.2 - 4.4) / (9 - 4.4) ≈ 83%"
     },
     {
       "location": "北欧",
       "lat_geo": "65°N",
       "lat_geomag": "58°N",
       "kp_min": 3.2,
-      "kp_current": 3.79,
-      "probability": 10,
-      "level": "较低",
-      "desc": "Kp=3.79，Kp_min=3.2，公式计算概率=10%",
-      "formula": "P = 100 × (3.79 - 3.2) / (9 - 3.2) ≈ 10%"
+      "kp_current": 8.2,
+      "probability": 86,
+      "level": "极高",
+      "desc": "Kp=8.2，Kp_min=3.2，公式计算概率=86%",
+      "formula": "P = 100 × (8.2 - 3.2) / (9 - 3.2) ≈ 86%"
     },
     {
       "location": "北美",
       "lat_geo": "60°N",
       "lat_geomag": "53°N",
       "kp_min": 3.7,
-      "kp_current": 3.79,
-      "probability": 2,
-      "level": "极低",
-      "desc": "Kp=3.79，Kp_min=3.7，公式计算概率=2%",
-      "formula": "P = 100 × (3.79 - 3.7) / (9 - 3.7) ≈ 2%"
+      "kp_current": 8.2,
+      "probability": 85,
+      "level": "极高",
+      "desc": "Kp=8.2，Kp_min=3.7，公式计算概率=85%",
+      "formula": "P = 100 × (8.2 - 3.7) / (9 - 3.7) ≈ 85%"
     }
   ],
-  "aurora_note": "极光可见概率基于实测/估算 Kp 指数计算。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。",
+  "aurora_note": "极光可见概率基于实测/估算 Kp 指数计算。注意：夏季高纬度地区（漠河/北欧）有极昼现象，天空亮度高，即使地磁活动强也可能肉眼看不到极光；冬季黑夜长则更利于观测。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。",
   "flare_forecast": {
-    "c_class_percent": 39.4,
-    "m_class_percent": 5.5,
-    "x_class_percent": 0,
-    "note": "基于 13 月平均黑子数 R=15.7 估算的耀斑爆发概率，单位：%",
+    "c_class_percent": 92.4,
+    "m_class_percent": 36.4,
+    "x_class_percent": 2.2,
+    "note": "基于 13 月平均黑子数 R=104.0 估算的耀斑爆发概率，单位：%",
     "source": "NOAA SWPC 耀斑概率统计模型（基于黑子数）"
   },
   "history_30days": [
@@ -188,57 +188,57 @@
   "history_13months": [
     {
       "date": "2025-07",
-      "value": 16.7
+      "value": 125.9
     },
     {
       "date": "2025-08",
-      "value": 18.3
+      "value": 133.7
     },
     {
       "date": "2025-09",
-      "value": 15.5
+      "value": 129.7
     },
     {
       "date": "2025-10",
-      "value": 17.2
+      "value": 114.8
     },
     {
       "date": "2025-11",
-      "value": 13.7
+      "value": 91.7
     },
     {
       "date": "2025-12",
-      "value": 21.3
+      "value": 124.2
     },
     {
       "date": "2026-01",
-      "value": 21.4
+      "value": 115.0
     },
     {
       "date": "2026-02",
-      "value": 14.1
+      "value": 77.4
     },
     {
       "date": "2026-03",
-      "value": 12.8
+      "value": 86.6
     },
     {
       "date": "2026-04",
-      "value": 11.4
+      "value": 79.3
     },
     {
       "date": "2026-05",
-      "value": 14.8
+      "value": 101.5
     },
     {
       "date": "2026-06",
-      "value": 15.6
+      "value": 94.4
     },
     {
       "date": "2026-07",
-      "value": 11.2
+      "value": 78.1
     }
   ],
-  "monthly_avg_13months": 15.7,
+  "monthly_avg_13months": 104.0,
   "disclaimer": "本数据仅供科普参考，所有数值均标注来源与计算公式。实际空间天气预报请以官方机构为准：中国地震局空间天气监测预警中心（spaceweather.org.cn）、NOAA SWPC（swpc.noaa.gov）"
 }
