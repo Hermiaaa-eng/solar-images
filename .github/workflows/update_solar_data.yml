@@ -35,6 +35,7 @@ jobs:
             echo "无数据变化"
           else
             git commit -m "每日更新太阳数据 $(date -u '+%Y-%m-%d')"
+            git pull --rebase
             git push
           fi
 
