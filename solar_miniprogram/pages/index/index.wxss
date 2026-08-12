@@ -218,6 +218,35 @@
 }
 .level-desc { font-size: 26rpx; opacity: 0.95; line-height: 1.6; position: relative; }
 
+/* 等级来源标签 */
+.level-source-tag {
+  margin-top: 14rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 16rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+  position: relative;
+}
+.level-source-icon { font-size: 24rpx; }
+.level-source-text { letter-spacing: 1rpx; }
+
+/* 等级备注 */
+.level-note {
+  margin-top: 10rpx;
+  padding: 10rpx 16rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  position: relative;
+  max-width: 500rpx;
+}
+
 /* ===== 异常等级跳动动画 ===== */
 .level-card.alert-bounce { animation: alertBounce 1.2s ease-in-out infinite; }
 @keyframes alertBounce {
