@@ -144,33 +144,14 @@ def load_silso_daily() -> dict:
     return result
 
 
-# ========== 2. SILSO 月度数据（用于计算 13 月平均） ==========
-
-def load_silso_monthly() -> dict:
-    """读取 SILSO 月度 CSV，计算 13 个月滑动平均（用于 Kp 估算公式）"""
-    result = {
-        'success': False,
-        'monthly_avg_13months': 0,
-        'history_13months': []
-    }
-
-    if not SILSO_MONTHLY_CSV.exists():
-        log('⚠️  本地无月度 CSV，尝试在线下载...')
-        try:
-            resp = requests.get(SILSO_MONTHLY_URL, timeout=TIMEOUT, verify=False)
-            if resp.status_code == 200:
-                with open(SILSO_MONTHLY_CSV, 'w', encoding='utf-8') as f:
-                    f.write(resp.text)
-                log('✅ 月度数据已下载')
-            else:
-                log(f'⚠️  月度数据下载失败 HTTP {resp.status_code}')
-                return result
-        except Exception as e:
-            log(f'⚠️  月度数据下载异常: {e}')
-            return result
+def load_silso_daily_full() -> list:
+    """读取 SILSO 日度 CSV 全量数据（用于计算 13 月平均）"""
+    if not SILSO_DAILY_CSV.exists():
+        log('⚠️  无日度 CSV，返回空数据')
+        return []
 
     try:
-        with open(SILSO_MONTHLY_CSV, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(SILSO_DAILY_CSV, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
 
         data_rows = []
@@ -183,40 +164,84 @@ def load_silso_monthly() -> dict:
                 try:
                     year = int(parts[0])
                     month = int(parts[1])
-                    sn = float(parts[4]) if parts[4].strip() else 0
-                    data_rows.append({
-                        'year': year,
-                        'month': month,
-                        'date': f'{year:04d}-{month:02d}',
-                        'sn': sn
-                    })
+                    day = int(parts[2])
+                    sn = float(parts[4]) if parts[4].strip() else -1
+                    if sn >= 0:
+                        data_rows.append({
+                            'year': year,
+                            'month': month,
+                            'day': day,
+                            'date': f'{year:04d}-{month:02d}-{day:02d}',
+                            'sn': sn
+                        })
                 except (ValueError, IndexError):
                     continue
 
-        if len(data_rows) >= 13:
-            last_13 = data_rows[-13:]
-            result['history_13months'] = [{
-                'date': r['date'],
-                'value': round(r['sn'], 1)
-            } for r in last_13]
-            result['monthly_avg_13months'] = round(sum(r['sn'] for r in last_13) / 13, 1)
-            result['success'] = True
-            log(f'✅ 13 月平均黑子数: {result["monthly_avg_13months"]}')
-        elif data_rows:
-            # 数据不足 13 个月，用全部数据平均
-            result['monthly_avg_13months'] = round(sum(r['sn'] for r in data_rows) / len(data_rows), 1)
-            result['success'] = True
-            log(f'✅ 平均黑子数（{len(data_rows)} 个月）: {result["monthly_avg_13months"]}')
+        log(f'📚 加载日度全量数据: {len(data_rows)} 条')
+        return data_rows
 
     except Exception as e:
-        log(f'❌ 月度数据读取异常: {e}')
+        log(f'❌ 日度全量读取异常: {e}')
+        return []
+
+
+# ========== 2. 从日度数据计算 13 月平均（最可靠方式） ==========
+
+def compute_monthly_avg_from_daily(daily_data: list) -> dict:
+    """
+    从日度黑子数据计算每月平均值，再取最近 13 个月的滑动平均。
+    这是最可靠的方式，因为日度数据每天更新，不会出现月度 CSV 延迟问题。
+    """
+    result = {
+        'success': False,
+        'monthly_avg_13months': 0,
+        'history_13months': []
+    }
+
+    if not daily_data:
+        log('⚠️  无日度数据，无法计算月度平均')
+        return result
+
+    # 按月分组计算月均值
+    monthly_groups = {}
+    for row in daily_data:
+        date_str = row['date']
+        year_month = date_str[:7]  # e.g., "2026-07"
+        if year_month not in monthly_groups:
+            monthly_groups[year_month] = []
+        monthly_groups[year_month].append(row['sn'])
+
+    monthly_avgs = []
+    for ym in sorted(monthly_groups.keys()):
+        values = monthly_groups[ym]
+        avg = sum(values) / len(values)
+        monthly_avgs.append({
+            'date': ym,
+            'value': round(avg, 1)
+        })
+
+    log(f'📊 从日度数据计算出 {len(monthly_avgs)} 个月的月均值')
+
+    # 取最近 13 个月
+    if len(monthly_avgs) >= 13:
+        last_13 = monthly_avgs[-13:]
+    elif len(monthly_avgs) >= 3:
+        last_13 = monthly_avgs  # 不足 13 个月时用全部
+    else:
+        log('⚠️  有效月份不足 3 个月')
+        return result
+
+    result['history_13months'] = last_13
+    result['monthly_avg_13months'] = round(sum(r['value'] for r in last_13) / len(last_13), 1)
+    result['success'] = True
+    log(f'✅ 13 月平均黑子数（从日度数据计算）: {result["monthly_avg_13months"]}')
 
     return result
 
 
 # ========== 3. NOAA SWPC Kp 指数实时 API ==========
 
-def fetch_kp_realtime() -> dict:
+def fetch_kp_realtime(r_value: float = None) -> dict:
     """从 NOAA SWPC 获取实时 Kp 指数，失败时用黑子数估算"""
     result = {
         'source': 'NOAA SWPC 实时 API',
@@ -246,26 +271,15 @@ def fetch_kp_realtime() -> dict:
     except Exception as e:
         log(f'⚠️  NOAA Kp API 不可达: {e}')
 
-    # 备用 API
-    try:
-        alt_url = 'https://services.swpc.noaa.gov/text/weekly.txt'
-        resp = requests.get(alt_url, timeout=TIMEOUT)
-        if resp.status_code == 200:
-            log('⚠️  Kp 实测失败，将用公式估算')
-    except Exception:
-        pass
-
-    # 失败：用黑子数估算
-    log('⚠️  Kp 实测失败，改用 13 月平均黑子数估算')
-    monthly = load_silso_monthly()
-    if monthly.get('success'):
-        r = monthly['monthly_avg_13months']
-        estimated_kp = min(9, max(0, 3 + 0.05 * r))
+    # 备用：用已计算的 R 值估算
+    if r_value is not None and r_value > 0:
+        log(f'⚠️  Kp 实测失败，改用 13 月平均黑子数 R={r_value} 估算')
+        estimated_kp = min(9, max(0, 3 + 0.05 * r_value))
         result['kp_value'] = round(estimated_kp, 2)
         result['kp_estimated'] = True
-        result['source'] = f'SILSO 13 月平均黑子数 R={r} 代入经验公式 Kp≈3+0.05R'
+        result['source'] = f'SILSO 13 月平均黑子数 R={r_value} 代入经验公式 Kp≈3+0.05R'
         result['success'] = True
-        log(f'📐 Kp 估算: R={r} → Kp≈{estimated_kp}')
+        log(f'📐 Kp 估算: R={r_value} → Kp≈{estimated_kp}')
     else:
         # 最终兜底
         result['kp_value'] = 4.0
@@ -385,11 +399,14 @@ def main():
     # 6.2 加载日度黑子数
     daily = load_silso_daily()
 
-    # 6.3 加载月度数据（13 月平均）
-    monthly = load_silso_monthly()
+    # 6.3 从日度数据计算 13 月平均（最可靠方式）
+    # 需要完整的日度数据（从 SILSO CSV 解析全部历史）
+    all_daily_data = load_silso_daily_full()
+    monthly = compute_monthly_avg_from_daily(all_daily_data)
+    r_value = monthly.get('monthly_avg_13months', 0)
 
-    # 6.4 获取 Kp 指数
-    kp_data = fetch_kp_realtime()
+    # 6.4 获取 Kp 指数（传入选好的 R 值用于兜底估算）
+    kp_data = fetch_kp_realtime(r_value=r_value)
 
     # 6.5 计算极光概率
     kp_val = kp_data['kp_value']
@@ -405,7 +422,7 @@ def main():
         'generated_at': timestamp,
         'data_source': {
             'sunspot_daily': daily['source'],
-            'sunspot_monthly': 'SILSO 月度数据（比利时皇家天文台）',
+            'sunspot_monthly': 'SILSO 日度数据聚合（从日度实测值计算月均值）',
             'kp_index': kp_data['source'],
             'aurora_formula': 'Kp_peak = 3 + 0.05 × R；Kp_min = (90 − 地磁纬度) / 10；P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))',
             'flare': flare['source']
@@ -424,7 +441,7 @@ def main():
             'source': kp_data['source']
         },
         'aurora_probability': aurora['locations'],
-        'aurora_note': '极光可见概率基于实测/估算 Kp 指数计算。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。',
+        'aurora_note': '极光可见概率基于实测/估算 Kp 指数计算。注意：夏季高纬度地区（漠河/北欧）有极昼现象，天空亮度高，即使地磁活动强也可能肉眼看不到极光；冬季黑夜长则更利于观测。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。',
         'flare_forecast': {
             'c_class_percent': flare['c_class_percent'],
             'm_class_percent': flare['m_class_percent'],
