@@ -1,0 +1,41 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/knowledge/knowledge",
+    "pages/history/history"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#3a7bd5",
+    "navigationBarTitleText": "太阳活动科普",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#3a7bd5",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "预测面板",
+        "iconPath": "images/alert.png",
+        "selectedIconPath": "images/alert_on.png"
+      },
+      {
+        "pagePath": "pages/knowledge/knowledge",
+        "text": "科普知识",
+        "iconPath": "images/knowledge.png",
+        "selectedIconPath": "images/knowledge_on.png"
+      },
+      {
+        "pagePath": "pages/history/history",
+        "text": "空间天气",
+        "iconPath": "images/history.png",
+        "selectedIconPath": "images/history_on.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
