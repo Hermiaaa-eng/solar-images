@@ -232,7 +232,7 @@
         </view>
         <view class="aurora-desc">{{auroraInfo.mohe.desc}}</view>
         <view class="aurora-peak" wx:if="{{auroraInfo.mohe.peakProb > auroraInfo.mohe.prob}}">
-          <text class="aurora-peak-label">🌊 地磁暴期间峰值概率</text>
+          <text class="aurora-peak-label">🌊 周期参考概率上限</text>
           <text class="aurora-peak-val">{{auroraInfo.mohe.peakProb}}%</text>
           <text class="aurora-peak-desc">{{auroraInfo.mohe.peakDesc}}</text>
         </view>
@@ -255,7 +255,7 @@
         </view>
         <view class="aurora-desc">{{auroraInfo.nordic.desc}}</view>
         <view class="aurora-peak" wx:if="{{auroraInfo.nordic.peakProb > auroraInfo.nordic.prob}}">
-          <text class="aurora-peak-label">🌊 地磁暴期间峰值概率</text>
+          <text class="aurora-peak-label">🌊 周期参考概率上限</text>
           <text class="aurora-peak-val">{{auroraInfo.nordic.peakProb}}%</text>
           <text class="aurora-peak-desc">{{auroraInfo.nordic.peakDesc}}</text>
         </view>
@@ -278,7 +278,7 @@
         </view>
         <view class="aurora-desc">{{auroraInfo.northAmerica.desc}}</view>
         <view class="aurora-peak" wx:if="{{auroraInfo.northAmerica.peakProb > auroraInfo.northAmerica.prob}}">
-          <text class="aurora-peak-label">🌊 地磁暴期间峰值概率</text>
+          <text class="aurora-peak-label">🌊 周期参考概率上限</text>
           <text class="aurora-peak-val">{{auroraInfo.northAmerica.peakProb}}%</text>
           <text class="aurora-peak-desc">{{auroraInfo.northAmerica.peakDesc}}</text>
         </view>
@@ -320,9 +320,9 @@
       <view class="formula-step">
         <view class="formula-step-num">④</view>
         <view class="formula-step-body">
-          <view class="formula-step-name">理论峰值概率（仅科普参考）</view>
-          <view class="formula-step-eq">Kp_peak = 3 + 0.05 × R = {{auroraInfo.kpPeakValue}}</view>
-          <view class="formula-step-note">R = 13 月平均黑子数 = {{auroraInfo.snMonthlyAvg}}，代入得地磁暴期间理论上限</view>
+          <view class="formula-step-name">周期参考概率上限（仅科普示意）</view>
+          <view class="formula-step-eq">Kp_peak ≈ 3 + 0.05 × R ≈ {{auroraInfo.kpPeakValue}}</view>
+          <view class="formula-step-note">R = 13 月平均黑子数 = {{auroraInfo.snMonthlyAvg}}。该公式无严格地磁学推导，仅为当前太阳活动周期下地磁暴潜力的粗略经验参考，不得作为预报使用。</view>
         </view>
       </view>
 
@@ -346,6 +346,23 @@
     </view>
     <view class="aurora-note">{{auroraInfo.auroraNote}}</view>
     <view class="aurora-source">📊 数据来源：{{auroraInfo.dataSource}}</view>
+
+    <!-- 科学免责声明 -->
+    <view class="aurora-disclaimer">
+      <view class="aurora-disclaimer-header">
+        <text class="aurora-disclaimer-icon">⚠️</text>
+        <text class="aurora-disclaimer-title">科学声明</text>
+      </view>
+      <view class="aurora-disclaimer-text">
+        本页极光概率为{{'\n'}}<text class="hl-orange">教学科普简化模型</text>，仅基于 Kp 指数粗略估算，<text class="hl-red-bold">不得用于规划极光观测</text>。
+      </view>
+      <view class="aurora-disclaimer-text">
+        真实极光可见性还取决于：行星际磁场 Bz 南向分量（极光触发核心）、地方时（仅午夜前后易观测）、天气、光污染、季节（<text class="hl-blue-bold">夏季高纬度有极昼，即使强地磁暴也肉眼看不到极光</text>，冬季黑夜长更有利）。
+      </view>
+      <view class="aurora-disclaimer-text aurora-disclaimer-pro">
+        📡 专业极光预报请查询：<text class="hl-green-bold">NOAA SWPC 空间天气预测中心 OVATION 模型 30 分钟实时预报</text>。
+      </view>
+    </view>
   </view>
 
   <!-- ===== 新功能 4：观测建议助手 ===== -->
