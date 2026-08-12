@@ -105,6 +105,11 @@
     <view class="level-label">{{isAnomaly ? '⚠️ 异常预测等级' : '最新预测等级'}}</view>
     <view class="level-text">{{currentLevel}}</view>
     <view class="level-desc">{{levelDesc}}</view>
+    <view class="level-source-tag" wx:if="{{levelSource}}">
+      <text class="level-source-icon">{{levelSource === 'LSTM 预测填补' ? '🤖' : '📡'}}</text>
+      <text class="level-source-text">{{levelSource}}</text>
+    </view>
+    <view class="level-note" wx:if="{{levelNote}}">{{levelNote}}</view>
   </view>
 
   <!-- 未来 7 期预测列表（异常数据自动标亮 + 徽章） -->
