@@ -70,7 +70,9 @@ Page({
     // 官方实测数据
     officialVal: 0,
     officialDate: '',
-    officialSource: '',
+    officialSource: 'SILSO 比利时皇家天文台',
+    officialTitle: '📡 SILSO 官方实测',
+    officialPreliminary: false,
     // 数据新鲜度
     dataFreshness: '',
     dataFreshnessLevel: 'ok',  // ok / warning / danger
@@ -171,13 +173,13 @@ Page({
         else if (predVal > 0) currentLevel = '低度活跃'
         else currentLevel = '平静'
         levelSource = 'LSTM 预测填补'
-        levelNote = `官方数据延迟 ${diffDays} 天，使用 ${firstForecast.date} 的 LSTM 预测值 ${predVal} 作为当前状态参考`
+        levelNote = `官方数据延迟 ${diffDays} 天，以下为 ${firstForecast.date} 的 LSTM 预测值`
       } else {
         if (officialVal >= 100) currentLevel = '强爆发'
         else if (officialVal >= 70) currentLevel = '中度活跃'
         else if (officialVal >= 30) currentLevel = '低度活跃'
         levelSource = '官方实测'
-        if (diffDays > 4) levelNote = `SILSO 数据延迟 ${diffDays} 天（正常处理周期）`
+        if (diffDays > 4) levelNote = `SILSO 数据延迟 ${diffDays} 天（处理中）`
       }
 
       const currentIsAnomaly = currentLevel === '强爆发' || currentLevel === '中度活跃'
@@ -197,6 +199,8 @@ Page({
         officialVal: officialVal,
         officialDate: officialDate,
         officialSource: officialSn.source || 'SILSO 比利时皇家天文台',
+        officialTitle: officialSn.preliminary ? '📡 NOAA 初步数据' : '📡 SILSO 官方实测',
+        officialPreliminary: !!officialSn.preliminary,
         dataFreshness: freshness.text,
         dataFreshnessLevel: freshness.level,
         levelSource: levelSource,
@@ -267,15 +271,15 @@ Page({
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
       if (diffDays < 0) {
-        return { text: `数据日期 ${dateStr}（未来数据？）`, level: 'danger' }
+        return { text: '数据日期异常', level: 'danger' }
       } else if (diffDays <= 4) {
-        return { text: `数据新鲜（延迟 ${diffDays} 天）`, level: 'ok' }
+        return { text: `📡 数据新鲜（${diffDays}天前）`, level: 'ok' }
       } else if (diffDays <= 7) {
-        return { text: `数据延迟 ${diffDays} 天（SILSO 正常延迟范围内）`, level: 'warning' }
+        return { text: `📡 数据延迟 ${diffDays} 天`, level: 'warning' }
       } else if (diffDays <= 14) {
-        return { text: `⚠️ 数据延迟 ${diffDays} 天，GitHub Actions 可能未正常运行`, level: 'warning' }
+        return { text: `📡 数据延迟 ${diffDays} 天`, level: 'warning' }
       } else {
-        return { text: `🚨 数据严重过期 ${diffDays} 天，请检查数据更新任务`, level: 'danger' }
+        return { text: `🚨 数据严重过期 ${diffDays} 天`, level: 'danger' }
       }
     } catch (e) {
       return { text: '数据日期解析失败', level: 'danger' }
