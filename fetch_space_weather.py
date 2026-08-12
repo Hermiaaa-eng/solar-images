@@ -287,13 +287,24 @@ def fetch_kp_realtime(r_value: float = None) -> dict:
             resp = requests.get(NOAA_KP_API, timeout=TIMEOUT, verify=False)
             if resp.status_code == 200:
                 data = resp.json()
-                # NOAA Kp API 返回格式：[{"time_tag": "...", "kp": 3.0, ...}, ...]
+                # NOAA Kp API 返回格式：[{"time_tag": "...", "kp": "3.0", ...}, ...]
+                # 注意：kp 字段可能是字符串也可能是数字，需要统一转 float
                 if isinstance(data, list) and len(data) > 0:
-                    valid_kp = [d for d in data if d.get('kp', -1) >= 0]
+                    def _parse_kp(entry):
+                        """安全解析 Kp 值（处理字符串/数字/None）"""
+                        raw = entry.get('kp', -1)
+                        try:
+                            v = float(raw)
+                            return v if v >= 0 else -1
+                        except (TypeError, ValueError):
+                            return -1
+
+                    valid_kp = [(d, _parse_kp(d)) for d in data]
+                    valid_kp = [(d, v) for d, v in valid_kp if v >= 0]
                     if valid_kp:
                         # 取最近 24 小时内的最大 Kp（更能反映当日地磁活动水平）
-                        recent_kp = valid_kp[-24:] if len(valid_kp) >= 24 else valid_kp
-                        latest_kp = max(d['kp'] for d in recent_kp)
+                        recent = valid_kp[-24:] if len(valid_kp) >= 24 else valid_kp
+                        latest_kp = max(v for _, v in recent)
                         result['kp_value'] = latest_kp
                         result['source'] = 'NOAA SWPC 实测 Kp（planetary_k_index_1m.json，近 24 小时最大值）'
                         result['success'] = True
