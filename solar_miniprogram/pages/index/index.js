@@ -73,7 +73,10 @@ Page({
     officialSource: '',
     // 数据新鲜度
     dataFreshness: '',
-    dataFreshnessLevel: 'ok'  // ok / warning / danger
+    dataFreshnessLevel: 'ok',  // ok / warning / danger
+    // 等级来源和备注
+    levelSource: '官方实测',
+    levelNote: ''
   },
 
   buildImageSources: function () {
@@ -152,13 +155,32 @@ Page({
 
       const hasAnomaly = forecastList.some(item => item.isAnomaly)
 
-      // 当前等级：基于官方实测黑子数判定
+      // 当前等级：基于官方实测黑子数判定，但数据过期(>7天)时用 LSTM 预测填补
       let currentLevel = '平静'
-      if (officialVal >= 100) currentLevel = '强爆发'
-      else if (officialVal >= 70) currentLevel = '中度活跃'
-      else if (officialVal >= 30) currentLevel = '低度活跃'
+      let levelSource = '官方实测'
+      let levelNote = ''
+      const diffDays = this._calcDaysDiff(officialDate)
 
-      const currentIsAnomaly = officialVal >= ANOMALY_VALUE_THRESHOLD
+      if (diffDays > 7 && forecastList.length > 0) {
+        // 官方数据过期超过7天，用 LSTM 预测值作为"当前状态"
+        const firstForecast = forecastList[0]
+        const predVal = Number(firstForecast.value) || 0
+        if (predVal >= 100) currentLevel = '强爆发'
+        else if (predVal >= 70) currentLevel = '中度活跃'
+        else if (predVal >= 30) currentLevel = '低度活跃'
+        else if (predVal > 0) currentLevel = '低度活跃'
+        else currentLevel = '平静'
+        levelSource = 'LSTM 预测填补'
+        levelNote = `官方数据延迟 ${diffDays} 天，使用 ${firstForecast.date} 的 LSTM 预测值 ${predVal} 作为当前状态参考`
+      } else {
+        if (officialVal >= 100) currentLevel = '强爆发'
+        else if (officialVal >= 70) currentLevel = '中度活跃'
+        else if (officialVal >= 30) currentLevel = '低度活跃'
+        levelSource = '官方实测'
+        if (diffDays > 4) levelNote = `SILSO 数据延迟 ${diffDays} 天（正常处理周期）`
+      }
+
+      const currentIsAnomaly = currentLevel === '强爆发' || currentLevel === '中度活跃'
       const levelConfig = this.getLevelConfig(currentLevel)
 
       // 计算数据新鲜度（SILSO 数据相对今天的延迟天数）
@@ -176,10 +198,12 @@ Page({
         officialDate: officialDate,
         officialSource: officialSn.source || 'SILSO 比利时皇家天文台',
         dataFreshness: freshness.text,
-        dataFreshnessLevel: freshness.level
+        dataFreshnessLevel: freshness.level,
+        levelSource: levelSource,
+        levelNote: levelNote
       })
 
-      console.log(`[首页] 官方实测: ${officialVal} (${officialDate})，等级: ${currentLevel}，新鲜度: ${freshness.text}`)
+      console.log(`[首页] 等级: ${currentLevel} (${levelSource}), 官方: ${officialVal} (${officialDate}), 新鲜度: ${freshness.text}`)
     } catch (e) {
       console.error('[首页] 数据处理出错:', e)
     }
@@ -210,6 +234,22 @@ Page({
         that.setData({ cdnStatus: '本地数据' })
       }
     })
+  },
+
+  // ===== 计算数据延迟天数（辅助函数） =====
+  _calcDaysDiff: function (dateStr) {
+    if (!dateStr || dateStr === '未知' || dateStr === '') return 999
+    try {
+      const parts = dateStr.split('-')
+      if (parts.length < 3) return 999
+      const dataDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const diffMs = today.getTime() - dataDate.getTime()
+      return Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    } catch (e) {
+      return 999
+    }
   },
 
   // ===== 计算数据新鲜度（SILSO 数据相对今天的延迟天数） =====
