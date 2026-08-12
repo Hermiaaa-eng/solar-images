@@ -16,11 +16,11 @@
     </view>
     <view class="official-data-meta">
       <text>📅 {{officialDate}}</text>
-      <text>📊 {{officialSource}}</text>
+      <text wx:if="{{!officialPreliminary}}">📊 SILSO 比利时皇家天文台</text>
+      <text wx:else>📊 NOAA SWPC（初步值，未经 SILSO 校准）</text>
     </view>
-    <view class="freshness-badge freshness-{{dataFreshnessLevel}}">
+    <view class="freshness-badge freshness-{{dataFreshnessLevel}}" wx:if="{{dataFreshness}}">
       <text>{{dataFreshness}}</text>
-      <text class="preliminary-tag" wx:if="{{officialPreliminary}}">初步值</text>
     </view>
   </view>
 
@@ -106,11 +106,10 @@
     <view class="level-label">{{isAnomaly ? '⚠️ 异常预测等级' : '最新预测等级'}}</view>
     <view class="level-text">{{currentLevel}}</view>
     <view class="level-desc">{{levelDesc}}</view>
-    <view class="level-source-tag" wx:if="{{levelSource}}">
-      <text class="level-source-icon">{{levelSource === 'LSTM 预测填补' ? '🤖' : '📡'}}</text>
-      <text class="level-source-text">{{levelSource}}</text>
+    <view class="level-source-tag" wx:if="{{levelSource && levelSource !== '官方实测'}}">
+      <text class="level-source-icon">🤖</text>
+      <text class="level-source-text">LSTM 预测填补</text>
     </view>
-    <view class="level-note" wx:if="{{levelNote}}">{{levelNote}}</view>
   </view>
 
   <!-- 未来 7 期预测列表（异常数据自动标亮 + 徽章） -->
@@ -153,11 +152,6 @@
 
   <view class="footer">
     <text>💡 数据：SILSO / NOAA 官方 · LSTM 预测 · NASA SDO 实拍</text>
-    <view class="cdn-status">
-      <text class="cdn-status-dot {{cdnStatus === '已更新' ? 'dot-online' : 'dot-local'}}">●</text>
-      <text class="cdn-status-text">官方数据{{cdnStatus}}</text>
-      <text class="cdn-status-time" wx:if="{{cdnUpdateTime}}">（{{cdnUpdateTime}}）</text>
-    </view>
   </view>
 
 </view>
