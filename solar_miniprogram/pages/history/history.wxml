@@ -3,8 +3,8 @@
 
   <!-- 页面标题 -->
   <view class="header">
-    <view class="header-title">📊 太阳活动历史变化</view>
-    <view class="header-subtitle">观察数据，发现规律</view>
+    <view class="header-title">📊 空间天气详情</view>
+    <view class="header-subtitle">极光概率 · 观测建议 · 历史统计</view>
   </view>
 
   <!-- ===== 新功能 1：太阳活动钟（环形进度条） ===== -->
