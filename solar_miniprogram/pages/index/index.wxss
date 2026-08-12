@@ -467,3 +467,15 @@
 .cdn-status-time {
   color: rgba(255, 200, 150, 0.5);
 }
+
+/* 初步值标签 */
+.preliminary-tag {
+  margin-left: 10rpx;
+  padding: 2rpx 10rpx;
+  background: rgba(255, 152, 0, 0.15);
+  border: 1rpx solid rgba(255, 152, 0, 0.4);
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  color: #ff9800;
+  font-weight: 600;
+}
