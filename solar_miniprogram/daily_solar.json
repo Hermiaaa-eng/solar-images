@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-12 13:05:17",
+  "generated_at": "2026-08-12 13:55:51",
   "data_source": {
     "sunspot_daily": "SILSO 日度数据（比利时皇家天文台，每日实测）",
     "sunspot_monthly": "SILSO 日度数据聚合（从日度实测值计算月均值）",
-    "kp_index": "SILSO 13 月平均黑子数 R=104.0 代入经验公式 Kp≈3+0.05R",
+    "kp_index": "NOAA 实测不可达，使用地磁活动历史典型值 Kp≈3.3（NOAA 长期统计均值，非活动周期理论上限 Kp_peak=8.2）",
     "aurora_formula": "Kp_peak = 3 + 0.05 × R；Kp_min = (90 − 地磁纬度) / 10；P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))",
-    "flare": "NOAA SWPC 耀斑概率统计模型（基于黑子数）"
+    "flare": "NOAA SWPC 耀斑概率统计模型（McGuire 简化版，基于黑子数线性近似）"
   },
   "official_sunspot": {
     "date": "2026-07-31",
@@ -15,10 +15,12 @@
     "note": "每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构"
   },
   "official_kp": {
-    "value": 8.2,
-    "description": "Kp=8.2（强地磁暴）",
+    "value": 3.3,
+    "description": "Kp=3.3（微扰期，地磁微扰）",
     "estimated": true,
-    "source": "SILSO 13 月平均黑子数 R=104.0 代入经验公式 Kp≈3+0.05R"
+    "source": "NOAA 实测不可达，使用地磁活动历史典型值 Kp≈3.3（NOAA 长期统计均值，非活动周期理论上限 Kp_peak=8.2）",
+    "kp_peak_potential": 8.2,
+    "peak_note": "Kp_peak=8.2 是基于 13 月平均黑子数 R 的活动周期理论上限，不代表当前实测 Kp。当前用于极光概率计算的 Kp=3.3（历史典型值/估算）。"
   },
   "aurora_probability": [
     {
@@ -26,42 +28,51 @@
       "lat_geo": "53°N",
       "lat_geomag": "46°N",
       "kp_min": 4.4,
-      "kp_current": 8.2,
-      "probability": 83,
-      "level": "极高",
-      "desc": "Kp=8.2，Kp_min=4.4，公式计算概率=83%",
-      "formula": "P = 100 × (8.2 - 4.4) / (9 - 4.4) ≈ 83%"
+      "kp_current": 3.3,
+      "probability": 0,
+      "level": "几乎不可见",
+      "desc": "当前 Kp=3.3 < 阈值 Kp_min=4.4，概率趋近于零",
+      "formula": "P = 100 × (3.3 - 4.4) / (9 - 4.4) ≈ 0%",
+      "peak_probability": 83,
+      "peak_level": "极高",
+      "peak_desc": "若发生地磁暴（Kp 达到周期上限 8.2），概率可达 83%"
     },
     {
       "location": "北欧",
       "lat_geo": "65°N",
       "lat_geomag": "58°N",
       "kp_min": 3.2,
-      "kp_current": 8.2,
-      "probability": 86,
-      "level": "极高",
-      "desc": "Kp=8.2，Kp_min=3.2，公式计算概率=86%",
-      "formula": "P = 100 × (8.2 - 3.2) / (9 - 3.2) ≈ 86%"
+      "kp_current": 3.3,
+      "probability": 2,
+      "level": "极低",
+      "desc": "当前 Kp=3.3，Kp_min=3.2，公式计算概率=2%",
+      "formula": "P = 100 × (3.3 - 3.2) / (9 - 3.2) ≈ 2%",
+      "peak_probability": 86,
+      "peak_level": "极高",
+      "peak_desc": "若发生地磁暴（Kp 达到周期上限 8.2），概率可达 86%"
     },
     {
       "location": "北美",
       "lat_geo": "60°N",
       "lat_geomag": "53°N",
       "kp_min": 3.7,
-      "kp_current": 8.2,
-      "probability": 85,
-      "level": "极高",
-      "desc": "Kp=8.2，Kp_min=3.7，公式计算概率=85%",
-      "formula": "P = 100 × (8.2 - 3.7) / (9 - 3.7) ≈ 85%"
+      "kp_current": 3.3,
+      "probability": 0,
+      "level": "几乎不可见",
+      "desc": "当前 Kp=3.3 < 阈值 Kp_min=3.7，概率趋近于零",
+      "formula": "P = 100 × (3.3 - 3.7) / (9 - 3.7) ≈ 0%",
+      "peak_probability": 85,
+      "peak_level": "极高",
+      "peak_desc": "若发生地磁暴（Kp 达到周期上限 8.2），概率可达 85%"
     }
   ],
-  "aurora_note": "极光可见概率基于实测/估算 Kp 指数计算。注意：夏季高纬度地区（漠河/北欧）有极昼现象，天空亮度高，即使地磁活动强也可能肉眼看不到极光；冬季黑夜长则更利于观测。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。",
+  "aurora_note": "极光可见概率基于\"当前 Kp\"（NOAA 实测或历史典型值）计算，反映当日实际可见可能性。peak_probability 字段为\"地磁暴期间峰值概率\"，仅在地磁暴发生时可能达到。注意：夏季高纬度地区（漠河/北欧）有极昼现象，天空亮度高，即使地磁活动强也可能肉眼看不到极光；冬季黑夜长则更利于观测。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。",
   "flare_forecast": {
     "c_class_percent": 92.4,
     "m_class_percent": 36.4,
-    "x_class_percent": 2.2,
-    "note": "基于 13 月平均黑子数 R=104.0 估算的耀斑爆发概率，单位：%",
-    "source": "NOAA SWPC 耀斑概率统计模型（基于黑子数）"
+    "x_class_percent": 4.2,
+    "note": "基于 13 月平均黑子数 R=104.0 估算的当日耀斑爆发概率，单位：%。C/M/X 分别为常见/中等/强耀斑等级。",
+    "source": "NOAA SWPC 耀斑概率统计模型（McGuire 简化版，基于黑子数线性近似）"
   },
   "history_30days": [
     {
