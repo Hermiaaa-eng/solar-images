@@ -1123,6 +1123,47 @@
   border-top: 1rpx dashed rgba(0, 0, 0, 0.1);
 }
 
+/* ===== 科学免责声明 ===== */
+.aurora-disclaimer {
+  margin: 24rpx 0 0;
+  padding: 20rpx 22rpx;
+  background: linear-gradient(145deg, #fff8f0 0%, #fff5e6 100%);
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(244, 67, 54, 0.15);
+  border-left: 5rpx solid #ef5350;
+}
+.aurora-disclaimer-header {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+  padding-bottom: 10rpx;
+  border-bottom: 1rpx dashed rgba(244, 67, 54, 0.2);
+}
+.aurora-disclaimer-icon {
+  font-size: 26rpx;
+}
+.aurora-disclaimer-title {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: #c62828;
+  letter-spacing: 1rpx;
+}
+.aurora-disclaimer-text {
+  font-size: 22rpx;
+  color: #5a4a8a;
+  line-height: 1.75;
+  margin-top: 8rpx;
+}
+.aurora-disclaimer-pro {
+  margin-top: 14rpx;
+  padding: 12rpx 14rpx;
+  background: rgba(76, 175, 80, 0.08);
+  border-radius: 10rpx;
+  color: #2e7d32;
+  line-height: 1.7;
+}
+
 /* 耀斑概率芯片 */
 .obs-flare-row {
   display: flex;
