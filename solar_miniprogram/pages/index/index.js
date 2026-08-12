@@ -76,9 +76,8 @@ Page({
     // 数据新鲜度
     dataFreshness: '',
     dataFreshnessLevel: 'ok',  // ok / warning / danger
-    // 等级来源和备注
-    levelSource: '官方实测',
-    levelNote: ''
+    // 等级来源
+    levelSource: '官方实测'
   },
 
   buildImageSources: function () {
@@ -160,7 +159,6 @@ Page({
       // 当前等级：基于官方实测黑子数判定，但数据过期(>7天)时用 LSTM 预测填补
       let currentLevel = '平静'
       let levelSource = '官方实测'
-      let levelNote = ''
       const diffDays = this._calcDaysDiff(officialDate)
 
       if (diffDays > 7 && forecastList.length > 0) {
@@ -173,13 +171,11 @@ Page({
         else if (predVal > 0) currentLevel = '低度活跃'
         else currentLevel = '平静'
         levelSource = 'LSTM 预测填补'
-        levelNote = `官方数据延迟 ${diffDays} 天，以下为 ${firstForecast.date} 的 LSTM 预测值`
       } else {
         if (officialVal >= 100) currentLevel = '强爆发'
         else if (officialVal >= 70) currentLevel = '中度活跃'
         else if (officialVal >= 30) currentLevel = '低度活跃'
         levelSource = '官方实测'
-        if (diffDays > 4) levelNote = `SILSO 数据延迟 ${diffDays} 天（处理中）`
       }
 
       const currentIsAnomaly = currentLevel === '强爆发' || currentLevel === '中度活跃'
@@ -203,8 +199,7 @@ Page({
         officialPreliminary: !!officialSn.preliminary,
         dataFreshness: freshness.text,
         dataFreshnessLevel: freshness.level,
-        levelSource: levelSource,
-        levelNote: levelNote
+        levelSource: levelSource
       })
 
       console.log(`[首页] 等级: ${currentLevel} (${levelSource}), 官方: ${officialVal} (${officialDate}), 新鲜度: ${freshness.text}`)
@@ -271,15 +266,15 @@ Page({
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
       if (diffDays < 0) {
-        return { text: '数据日期异常', level: 'danger' }
+        return { text: '日期异常', level: 'danger' }
       } else if (diffDays <= 4) {
-        return { text: `📡 数据新鲜（${diffDays}天前）`, level: 'ok' }
+        return { text: `新鲜（${diffDays}天前）`, level: 'ok' }
       } else if (diffDays <= 7) {
-        return { text: `📡 数据延迟 ${diffDays} 天`, level: 'warning' }
+        return { text: `延迟 ${diffDays} 天`, level: 'warning' }
       } else if (diffDays <= 14) {
-        return { text: `📡 数据延迟 ${diffDays} 天`, level: 'warning' }
+        return { text: `延迟 ${diffDays} 天`, level: 'warning' }
       } else {
-        return { text: `🚨 数据严重过期 ${diffDays} 天`, level: 'danger' }
+        return { text: `严重过期 ${diffDays} 天`, level: 'danger' }
       }
     } catch (e) {
       return { text: '数据日期解析失败', level: 'danger' }
