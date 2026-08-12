@@ -1,0 +1,244 @@
+{
+  "generated_at": "2026-08-12 10:49:51",
+  "data_source": {
+    "sunspot_daily": "SILSO 日度数据（比利时皇家天文台，每日实测）",
+    "sunspot_monthly": "SILSO 月度数据（比利时皇家天文台）",
+    "kp_index": "SILSO 13 月平均黑子数 R=1.4 代入经验公式 Kp≈3+0.05R",
+    "aurora_formula": "Kp_peak = 3 + 0.05 × R；Kp_min = (90 − 地磁纬度) / 10；P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))",
+    "flare": "NOAA SWPC 耀斑概率统计模型（基于黑子数）"
+  },
+  "official_sunspot": {
+    "date": "2026-07-31",
+    "value": 118.0,
+    "source": "SILSO 比利时皇家天文台（日度实测）",
+    "description": "太阳黑子相对数（沃尔夫数 R = k × (10g + f)）",
+    "note": "每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构"
+  },
+  "official_kp": {
+    "value": 3.07,
+    "description": "Kp=3.07（微扰期，地磁微扰）",
+    "estimated": true,
+    "source": "SILSO 13 月平均黑子数 R=1.4 代入经验公式 Kp≈3+0.05R"
+  },
+  "aurora_probability": [
+    {
+      "location": "漠河",
+      "lat_geo": "53°N",
+      "lat_geomag": "46°N",
+      "kp_min": 4.4,
+      "kp_current": 3.07,
+      "probability": 0,
+      "level": "几乎不可见",
+      "desc": "Kp=3.07 < 阈值 Kp_min=4.4，概率趋近于零",
+      "formula": "P = 100 × (3.07 - 4.4) / (9 - 4.4) ≈ 0%"
+    },
+    {
+      "location": "北欧",
+      "lat_geo": "65°N",
+      "lat_geomag": "58°N",
+      "kp_min": 3.2,
+      "kp_current": 3.07,
+      "probability": 0,
+      "level": "几乎不可见",
+      "desc": "Kp=3.07 < 阈值 Kp_min=3.2，概率趋近于零",
+      "formula": "P = 100 × (3.07 - 3.2) / (9 - 3.2) ≈ 0%"
+    },
+    {
+      "location": "北美",
+      "lat_geo": "60°N",
+      "lat_geomag": "53°N",
+      "kp_min": 3.7,
+      "kp_current": 3.07,
+      "probability": 0,
+      "level": "几乎不可见",
+      "desc": "Kp=3.07 < 阈值 Kp_min=3.7，概率趋近于零",
+      "formula": "P = 100 × (3.07 - 3.7) / (9 - 3.7) ≈ 0%"
+    }
+  ],
+  "aurora_note": "极光可见概率基于实测/估算 Kp 指数计算。实际极光出现还受当日地磁暴强度、天气晴好度、月相影响。实时预报请参考国家空间天气监测预警中心（spaceweather.org.cn）或 NOAA SWPC。",
+  "flare_forecast": {
+    "c_class_percent": 30.8,
+    "m_class_percent": 0.5,
+    "x_class_percent": 0,
+    "note": "基于 13 月平均黑子数 R=1.4 估算的耀斑爆发概率，单位：%",
+    "source": "NOAA SWPC 耀斑概率统计模型（基于黑子数）"
+  },
+  "history_30days": [
+    {
+      "date": "2026-07-02",
+      "value": 107.0
+    },
+    {
+      "date": "2026-07-03",
+      "value": 102.0
+    },
+    {
+      "date": "2026-07-04",
+      "value": 89.0
+    },
+    {
+      "date": "2026-07-05",
+      "value": 89.0
+    },
+    {
+      "date": "2026-07-06",
+      "value": 65.0
+    },
+    {
+      "date": "2026-07-07",
+      "value": 58.0
+    },
+    {
+      "date": "2026-07-08",
+      "value": 75.0
+    },
+    {
+      "date": "2026-07-09",
+      "value": 72.0
+    },
+    {
+      "date": "2026-07-10",
+      "value": 71.0
+    },
+    {
+      "date": "2026-07-11",
+      "value": 71.0
+    },
+    {
+      "date": "2026-07-12",
+      "value": 61.0
+    },
+    {
+      "date": "2026-07-13",
+      "value": 39.0
+    },
+    {
+      "date": "2026-07-14",
+      "value": 34.0
+    },
+    {
+      "date": "2026-07-15",
+      "value": 26.0
+    },
+    {
+      "date": "2026-07-16",
+      "value": 47.0
+    },
+    {
+      "date": "2026-07-17",
+      "value": 34.0
+    },
+    {
+      "date": "2026-07-18",
+      "value": 25.0
+    },
+    {
+      "date": "2026-07-19",
+      "value": 45.0
+    },
+    {
+      "date": "2026-07-20",
+      "value": 74.0
+    },
+    {
+      "date": "2026-07-21",
+      "value": 87.0
+    },
+    {
+      "date": "2026-07-22",
+      "value": 81.0
+    },
+    {
+      "date": "2026-07-23",
+      "value": 90.0
+    },
+    {
+      "date": "2026-07-24",
+      "value": 99.0
+    },
+    {
+      "date": "2026-07-25",
+      "value": 95.0
+    },
+    {
+      "date": "2026-07-26",
+      "value": 100.0
+    },
+    {
+      "date": "2026-07-27",
+      "value": 104.0
+    },
+    {
+      "date": "2026-07-28",
+      "value": 100.0
+    },
+    {
+      "date": "2026-07-29",
+      "value": 106.0
+    },
+    {
+      "date": "2026-07-30",
+      "value": 125.0
+    },
+    {
+      "date": "2026-07-31",
+      "value": 118.0
+    }
+  ],
+  "history_13months": [
+    {
+      "date": "2025-07",
+      "value": 0.5
+    },
+    {
+      "date": "2025-08",
+      "value": 0.5
+    },
+    {
+      "date": "2025-09",
+      "value": 0.5
+    },
+    {
+      "date": "2025-10",
+      "value": 0.5
+    },
+    {
+      "date": "2025-11",
+      "value": 0.5
+    },
+    {
+      "date": "2025-12",
+      "value": 0.5
+    },
+    {
+      "date": "2026-01",
+      "value": 1.2
+    },
+    {
+      "date": "2026-02",
+      "value": 1.9
+    },
+    {
+      "date": "2026-03",
+      "value": 1.9
+    },
+    {
+      "date": "2026-04",
+      "value": 3.6
+    },
+    {
+      "date": "2026-05",
+      "value": 1.6
+    },
+    {
+      "date": "2026-06",
+      "value": 3.4
+    },
+    {
+      "date": "2026-07",
+      "value": 1.6
+    }
+  ],
+  "monthly_avg_13months": 1.4,
+  "disclaimer": "本数据仅供科普参考，所有数值均标注来源与计算公式。实际空间天气预报请以官方机构为准：中国地震局空间天气监测预警中心（spaceweather.org.cn）、NOAA SWPC（swpc.noaa.gov）"
+}
