@@ -423,11 +423,6 @@
   <view class="footer">
     <text>📊 数据来源：SILSO 比利时皇家天文台 / NOAA SWPC / 地磁学公式</text>
     <text class="footer-note">本小程序仅供科普参考，实际预报请以官方机构为准</text>
-    <view class="cdn-status">
-      <text class="cdn-status-dot {{cdnStatus === '已更新' ? 'dot-online' : 'dot-local'}}">●</text>
-      <text class="cdn-status-text">官方数据{{cdnStatus}}</text>
-      <text class="cdn-status-time" wx:if="{{cdnUpdateTime}}">（{{cdnUpdateTime}}）</text>
-    </view>
   </view>
 
 </view>
