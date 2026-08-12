@@ -1,7 +1,8 @@
 {
-  "generated_at": "2026-08-12 14:10:02",
+  "generated_at": "2026-08-12 14:32:29",
   "data_source": {
     "sunspot_daily": "SILSO 日度数据（比利时皇家天文台，每日实测）",
+    "sunspot_noaa": "NOAA SWPC 每日太阳数据",
     "sunspot_monthly": "SILSO 日度数据聚合（从日度实测值计算月均值）",
     "kp_index": "NOAA 实测不可达，使用地磁活动历史典型值 Kp≈3.3（NOAA 长期统计均值，非活动周期理论上限 Kp_peak=8.2）",
     "aurora_formula": "Kp_peak = 3 + 0.05 × R；Kp_min = (90 − 地磁纬度) / 10；P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))",
@@ -12,7 +13,9 @@
     "value": 118.0,
     "source": "SILSO 比利时皇家天文台（日度实测）",
     "description": "太阳黑子相对数（沃尔夫数 R = k × (10g + f)）",
-    "note": "每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构"
+    "note": "每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构。当前数据延迟 12 天（SILSO 正常处理周期 4-5 天）",
+    "delay_days": 12,
+    "preliminary": false
   },
   "official_kp": {
     "value": 3.3,
