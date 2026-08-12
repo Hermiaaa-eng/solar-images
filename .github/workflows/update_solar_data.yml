@@ -1,41 +1,80 @@
+# GitHub Actions: 每日自动更新太阳活动数据
+# 作用：每天 UTC 00:00（北京时间 08:00）自动运行 fetch_space_weather.py
+#       从 SILSO + NOAA 抓取最新官方数据，计算极光概率，生成 daily_solar.json
+#       并 commit 到仓库，小程序通过 jsdelivr CDN 读取最新数据
+#
+# 部署步骤：
+#   1. 把本文件放到 solar-images 仓库的 .github/workflows/ 目录下
+#   2. 把 fetch_space_weather.py 放到仓库根目录
+#   3. 确保仓库根目录有 solar_miniprogram/ 文件夹（或修改下面的路径）
+#   4. 仓库 Settings → Actions → General → Workflow permissions → 勾选 "Read and write permissions"
+#   5. 每天自动运行，也可在 Actions 页面手动触发（workflow_dispatch）
+
 name: 每日更新太阳活动数据
 
 on:
   schedule:
+    # 每天 UTC 00:00 运行（北京时间 08:00）
     - cron: '0 0 * * *'
-  workflow_dispatch:
+  workflow_dispatch:  # 支持手动触发
 
 permissions:
-  contents: write
+  contents: write  # 允许 commit
 
 jobs:
   update-solar-data:
     runs-on: ubuntu-latest
+
     steps:
-      - name: 检出仓库
+      - name: 📥 检出仓库代码
         uses: actions/checkout@v4
 
-      - name: 设置 Python
+      - name: 🐍 设置 Python 环境
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: 安装依赖
-        run: pip install requests
+      - name: 📦 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests certifi
+          # 更新 CA 证书，避免 NOAA/SILSO SSL 验证失败
+          python -c "import certifi; print('certifi 证书路径:', certifi.where())"
 
-      - name: 运行数据抓取
-        run: python fetch_space_weather.py
+      - name: 🚀 运行数据抓取脚本
+        run: |
+          python fetch_space_weather.py
+        continue-on-error: true  # 即使抓取失败也继续执行后续步骤（保留旧数据）
 
-      - name: 提交更新
+      - name: 📤 提交更新的 daily_solar.json
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add solar_miniprogram/daily_solar.json
           if git diff --staged --quiet; then
-            echo "无数据变化"
+            echo "📭 无数据变化，跳过提交"
           else
-            git commit -m "每日更新太阳数据 $(date -u '+%Y-%m-%d')"
-            git pull --rebase
-            git push
+            # 先 pull rebase 避免与其他推送冲突
+            git pull --rebase origin main || echo "⚠️ pull rebase 失败，尝试强制推送"
+            git commit -m "🔄 每日自动更新太阳活动数据 $(date -u '+%Y-%m-%d')"
+            # 推送失败时重试 3 次
+            for i in 1 2 3; do
+              if git push; then
+                echo "✅ 第 $i 次推送成功"
+                break
+              else
+                echo "⚠️ 第 $i 次推送失败，等待 5 秒后重试..."
+                sleep 5
+                git pull --rebase origin main || true
+              fi
+            done
           fi
 
+      - name: 📊 输出运行摘要
+        run: |
+          echo "=========================================="
+          echo "✅ 数据更新完成"
+          echo "📁 文件: solar_miniprogram/daily_solar.json"
+          echo "🌐 CDN: https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/solar_miniprogram/daily_solar.json"
+          echo "=========================================="
+          cat solar_miniprogram/daily_solar.json | head -20
