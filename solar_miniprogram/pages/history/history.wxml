@@ -180,26 +180,39 @@
     </view>
   </view>
 
-  <!-- ===== 新功能 2：极光可见概率参考 ===== -->
+  <!-- ===== 极光可见概率参考 ===== -->
   <view class="card aurora-card">
     <view class="aurora-title">🌌 极光可见概率参考</view>
-    <view class="aurora-subtitle">基于 SILSO 日度实测黑子数 {{auroraInfo.currentVal}}（{{auroraInfo.currentDate}}，{{auroraInfo.currentLevel}}）</view>
+    <view class="aurora-subtitle">数据日期：{{auroraInfo.currentDate}} · 黑子数 {{auroraInfo.currentVal}}（{{auroraInfo.currentLevel}}）</view>
 
-    <!-- Kp 指数说明：区分当前 Kp 和理论上限 Kp_peak -->
-    <view class="aurora-kp-row">
-      <text class="aurora-kp-label">当前 Kp 指数</text>
-      <text class="aurora-kp-value">{{auroraInfo.kpDisplayValue}}</text>
-      <text class="aurora-kp-desc">{{auroraInfo.kpDisplayDesc}}</text>
-      <text class="aurora-kp-tag" wx:if="{{auroraInfo.kpEstimated}}">历史典型值</text>
-      <text class="aurora-kp-tag" wx:else>NOAA实测</text>
+    <!-- Kp 指数双栏：当前 vs 理论上限 -->
+    <view class="kp-dual">
+      <view class="kp-item kp-item-current">
+        <view class="kp-item-header">
+          <text class="kp-item-icon">📊</text>
+          <text class="kp-item-label">{{auroraInfo.kpEstimated ? '当前 Kp（典型值）' : '当前 Kp（NOAA实测）'}}</text>
+        </view>
+        <view class="kp-item-value">{{auroraInfo.kpDisplayValue}}</view>
+        <view class="kp-item-desc">{{auroraInfo.kpDisplayDesc}}</view>
+      </view>
+      <view class="kp-divider"></view>
+      <view class="kp-item kp-item-peak" wx:if="{{auroraInfo.kpPeakValue !== '—'}}">
+        <view class="kp-item-header">
+          <text class="kp-item-icon">⚡</text>
+          <text class="kp-item-label">地磁暴上限</text>
+        </view>
+        <view class="kp-item-value">{{auroraInfo.kpPeakValue}}</view>
+        <view class="kp-item-desc">Kp_peak = 3 + 0.05R</view>
+      </view>
     </view>
-    <view class="aurora-kp-row aurora-kp-peak-row" wx:if="{{auroraInfo.kpPeakValue !== '—'}}">
-      <text class="aurora-kp-label aurora-kp-peak-label">理论峰值上限</text>
-      <text class="aurora-kp-value aurora-kp-peak-value">{{auroraInfo.kpPeakValue}}</text>
-      <text class="aurora-kp-desc">Kp_peak = 3 + 0.05 × R（仅科普参考）</text>
-      <text class="aurora-kp-tag aurora-kp-peak-tag">理论上限</text>
+
+    <!-- 简明说明 -->
+    <view class="kp-note-box" wx:if="{{auroraInfo.kpEstimated}}">
+      <text class="kp-note-text">NOAA 实时数据不可达，当前 Kp 使用低活动期典型值 3.3。地磁暴期间可接近上限 {{auroraInfo.kpPeakValue}}，此时极光概率大幅上升。</text>
     </view>
-    <view class="aurora-kp-explain">⚠️ 当前 Kp 用于极光概率计算（{{auroraInfo.kpEstimated ? 'NOAA 不可达时使用历史典型值 3.3' : 'NOAA SWPC 实测'}}），反映当日实际地磁活动。理论峰值上限 Kp_peak 仅表示当前太阳活动周期下地磁暴可能达到的最高水平，不代表当日实况。</view>
+    <view class="kp-note-box kp-note-real" wx:else>
+      <text class="kp-note-text">当前 Kp 为 NOAA 实测值。地磁暴期间可接近上限 {{auroraInfo.kpPeakValue}}，此时极光概率大幅上升。</text>
+    </view>
 
     <view class="aurora-list">
       <view class="aurora-item">
