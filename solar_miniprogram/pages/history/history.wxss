@@ -869,6 +869,97 @@
   border-left: 3rpx solid rgba(100, 57, 255, 0.3);
 }
 
+/* ===== 新版 Kp 双栏对比 ===== */
+.kp-dual {
+  display: flex;
+  align-items: stretch;
+  margin: 24rpx 0 16rpx;
+  background: linear-gradient(145deg, #faf7ff 0%, #fff8f0 100%);
+  border-radius: 20rpx;
+  padding: 24rpx 12rpx;
+  border: 1rpx solid rgba(100, 57, 255, 0.08);
+}
+.kp-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx 12rpx;
+  gap: 8rpx;
+}
+.kp-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.kp-item-icon {
+  font-size: 26rpx;
+}
+.kp-item-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  text-align: center;
+}
+.kp-item-current .kp-item-label {
+  color: #6439ff;
+}
+.kp-item-peak .kp-item-label {
+  color: #d46b08;
+}
+.kp-item-value {
+  font-size: 56rpx;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 1rpx;
+}
+.kp-item-current .kp-item-value {
+  background: linear-gradient(135deg, #6439ff, #8e7bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.kp-item-peak .kp-item-value {
+  background: linear-gradient(135deg, #ff8c42, #ff5252);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.kp-item-desc {
+  font-size: 20rpx;
+  color: #888;
+  text-align: center;
+  line-height: 1.4;
+}
+.kp-divider {
+  width: 1rpx;
+  background: linear-gradient(180deg, transparent, rgba(100, 57, 255, 0.2), rgba(255, 140, 66, 0.2), transparent);
+  margin: 8rpx 4rpx;
+}
+
+/* ===== Kp 说明框 ===== */
+.kp-note-box {
+  margin: 0 4rpx 20rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 14rpx;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.08), rgba(255, 193, 7, 0.05));
+  border-left: 4rpx solid #ff9800;
+}
+.kp-note-real {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.08), rgba(129, 199, 132, 0.04));
+  border-left: 4rpx solid #66bb6a;
+}
+.kp-note-text {
+  font-size: 22rpx;
+  color: #5a4a8a;
+  line-height: 1.65;
+}
+.kp-note-real .kp-note-text {
+  color: #2e4a2a;
+}
+
 /* ===== 理论峰值 Kp 行 ===== */
 .aurora-kp-peak-row {
   margin-top: 8rpx;
