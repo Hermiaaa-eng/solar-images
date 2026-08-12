@@ -1,0 +1,157 @@
+<!--pages/index/index.wxml - 首页：太阳活动预测面板（鲜艳天文主题）-->
+<view class="container">
+
+  <!-- 顶部标题（渐变橙色大字） -->
+  <view class="header">
+    <view class="header-title">☀️ 太阳活动预测面板</view>
+    <view class="header-subtitle">SILSO 官方实测 + LSTM 趋势预测</view>
+  </view>
+
+  <!-- 官方实测数据卡片 -->
+  <view class="card official-data-card" wx:if="{{officialVal > 0}}">
+    <view class="official-data-title">📡 SILSO 官方实测</view>
+    <view class="official-data-row">
+      <text class="official-data-val">{{officialVal}}</text>
+      <text class="official-data-unit">黑子数</text>
+    </view>
+    <view class="official-data-meta">
+      <text>📅 {{officialDate}}</text>
+      <text>📊 {{officialSource}}</text>
+    </view>
+    <view class="freshness-badge freshness-{{dataFreshnessLevel}}">
+      <text>{{dataFreshness}}</text>
+    </view>
+  </view>
+
+  <!-- 今日太阳实拍图（深空渐变卡片 + 旋转光晕动画） -->
+  <view class="card solar-image-card">
+    <view class="solar-image-title">📷 今日太阳实拍图</view>
+    <view class="solar-image-wrap">
+      <image
+        class="solar-image"
+        src="{{imageSrc}}"
+        mode="aspectFill"
+        binderror="onImageError"
+        bindload="onImageLoaded"
+        lazy-load="{{false}}">
+      </image>
+    </view>
+    <view class="solar-image-meta">
+      <text class="meta-source">来源：{{imageSourceName}}</text>
+      <text class="meta-time">时间：{{fetchTime}}</text>
+    </view>
+
+    <!-- 拍摄属性表（可折叠） -->
+    <view class="meta-table-wrap">
+      <view class="meta-table-header" bindtap="toggleMeta">
+        <text class="meta-table-title">🔬 拍摄参数详情</text>
+        <text class="meta-table-arrow {{metaExpanded ? 'arrow-up' : 'arrow-down'}}">{{metaExpanded ? '收起 ▲' : '展开 ▼'}}</text>
+      </view>
+      <view class="meta-table {{metaExpanded ? 'expanded' : 'collapsed'}}">
+        <view class="meta-row">
+          <text class="meta-key">拍摄仪器</text>
+          <text class="meta-val">{{imageMeta.instrument}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">观测波长</text>
+          <text class="meta-val">{{imageMeta.wavelength}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">观测温度</text>
+          <text class="meta-val">{{imageMeta.temperature}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">观测层次</text>
+          <text class="meta-val">{{imageMeta.target_layer}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">拍摄时间</text>
+          <text class="meta-val">{{imageMeta.capture_time}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">观测卫星</text>
+          <text class="meta-val">{{imageMeta.satellite}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">发射日期</text>
+          <text class="meta-val">{{imageMeta.launch_date}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">卫星轨道</text>
+          <text class="meta-val">{{imageMeta.orbit}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">观测距离</text>
+          <text class="meta-val">{{imageMeta.distance}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">图片分辨率</text>
+          <text class="meta-val">{{imageMeta.resolution}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="meta-key">文件大小</text>
+          <text class="meta-val">{{imageMeta.file_size}}</text>
+        </view>
+        <view class="meta-row meta-row-last">
+          <text class="meta-key">版权信息</text>
+          <text class="meta-val">{{imageMeta.copyright}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 最新预测等级大卡片（带脉冲光晕 + 异常时跳动） -->
+  <view class="level-card {{isAnomaly ? 'alert-bounce' : ''}}" style="background:{{levelColor}};">
+    <view class="level-label">{{isAnomaly ? '⚠️ 异常预测等级' : '最新预测等级'}}</view>
+    <view class="level-text">{{currentLevel}}</view>
+    <view class="level-desc">{{levelDesc}}</view>
+  </view>
+
+  <!-- 未来 7 期预测列表（异常数据自动标亮 + 徽章） -->
+  <view class="card">
+    <view class="title">
+      📅 未来 7 期太阳黑子数预测（LSTM 趋势）
+      <text wx:if="{{hasAnomaly}}" style="font-size:22rpx;color:#e53935;margin-left:16rpx;">
+        ⚠️ 含异常数据
+      </text>
+    </view>
+    <view class="forecast-list">
+      <view
+        wx:for="{{forecastList}}"
+        wx:key="date"
+        class="forecast-item {{item.isAnomaly ? 'anomaly' : ''}}">
+        <view class="forecast-date">
+          {{item.date}}
+          <text wx:if="{{item.isAnomaly}}" class="anomaly-badge">异常</text>
+        </view>
+        <view class="forecast-value">{{item.value}}</view>
+        <view class="forecast-level" style="background:{{item.level === '强爆发' ? 'linear-gradient(135deg, #ff5252, #ff1744)' : item.level === '中度活跃' ? 'linear-gradient(135deg, #ff9800, #f57c00)' : item.level === '低度活跃' ? 'linear-gradient(135deg, #ffc107, #ffab00)' : 'linear-gradient(135deg, #66bb6a, #4caf50)'}};">
+          {{item.level}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 活动等级说明 + 免责声明 -->
+  <view class="card">
+    <view class="title">📖 活动等级说明</view>
+    <view class="level-desc-item" wx:for="{{levels}}" wx:key="*this" wx:for-index="lvName" wx:for-item="range">
+      <text class="level-key">{{lvName}}</text>
+      <text class="level-value">：太阳黑子数 {{range}}</text>
+    </view>
+    <view class="disclaimer">
+      <text class="disclaimer-icon">ℹ️</text>
+      <text class="disclaimer-text">本预测仅基于历史黑子数时序数据，由轻量化 LSTM 模型生成，用于科普演示，不代表专业天文预报。专业预报请参考国家空间天气监测预警中心。</text>
+    </view>
+  </view>
+
+  <view class="footer">
+    <text>💡 数据来源：SILSO 官方实测 + LSTM 预测 + NASA SDO 实拍图</text>
+    <view class="cdn-status">
+      <text class="cdn-status-dot {{cdnStatus === '已更新' ? 'dot-online' : 'dot-local'}}">●</text>
+      <text class="cdn-status-text">官方数据{{cdnStatus}}</text>
+      <text class="cdn-status-time" wx:if="{{cdnUpdateTime}}">（{{cdnUpdateTime}}）</text>
+    </view>
+  </view>
+
+</view>
