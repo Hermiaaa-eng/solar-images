@@ -52,6 +52,7 @@ SILSO_MONTHLY_CSV = BASE_DIR / 'SN_m_tot_V2.0.csv'     # 月度数据（用于13
 SILSO_DAILY_URL = 'https://www.sidc.be/silso/DATA/SN_d_tot_V2.0.csv'
 SILSO_MONTHLY_URL = 'https://www.sidc.be/silso/DATA/SN_m_tot_V2.0.csv'
 NOAA_KP_API = 'https://services.swpc.noaa.gov/json/planetary_k_index_1m.json'
+NOAA_DAILY_API = 'https://services.swpc.noaa.gov/json/daily-solar-data.json'  # NOAA 每日太阳数据（含初步黑子数）
 
 TIMEOUT = 30
 
@@ -332,6 +333,65 @@ def fetch_kp_realtime(r_value: float = None) -> dict:
     return result
 
 
+# ========== 3.5 NOAA 每日太阳数据（补充数据源，延迟更低） ==========
+
+def fetch_noaa_daily_solar() -> dict:
+    """
+    从 NOAA SWPC 获取每日太阳数据（延迟约 1 天，比 SILSO 的 4-5 天更快）。
+    注意：NOAA 数据为初步值，未经 SILSO 最终校准，仅作补充参考。
+    """
+    result = {
+        'success': False,
+        'source': 'NOAA SWPC 每日太阳数据',
+        'date': '',
+        'sunspot': 0,
+        'note': ''
+    }
+
+    for attempt in range(2):
+        try:
+            log(f'⬇️  获取 NOAA 每日太阳数据 (尝试 {attempt + 1}/2): {NOAA_DAILY_API}')
+            resp = requests.get(NOAA_DAILY_API, timeout=TIMEOUT, verify=False)
+            if resp.status_code == 200:
+                data = resp.json()
+                # NOAA daily-solar-data.json 返回格式可能是数组或对象
+                if isinstance(data, list) and len(data) > 0:
+                    latest = data[-1]
+                elif isinstance(data, dict) and 'data' in data:
+                    latest = data['data'][-1] if data['data'] else {}
+                else:
+                    latest = data if isinstance(data, dict) else {}
+
+                # 尝试提取黑子数（字段名可能是 sunspot_number 或 sn）
+                sn_val = (
+                    latest.get('sunspot_number') or
+                    latest.get('sn') or
+                    latest.get('sunspots') or
+                    0
+                )
+                sn_date = latest.get('date', latest.get('time_tag', ''))
+
+                if sn_val and sn_date:
+                    result['date'] = str(sn_date)[:10]
+                    result['sunspot'] = round(float(sn_val), 1)
+                    result['source'] = f'NOAA SWPC 初步黑子数（延迟约 1 天）'
+                    result['success'] = True
+                    log(f'✅ NOAA 每日数据: {result["date"]} 黑子数 {result["sunspot"]}')
+                    return result
+                else:
+                    log(f'⚠️  NOAA 数据格式异常: {list(latest.keys()) if isinstance(latest, dict) else type(latest)}')
+            else:
+                log(f'⚠️  NOAA 每日数据 HTTP {resp.status_code}')
+        except Exception as e:
+            log(f'⚠️  NOAA 每日数据异常 (尝试 {attempt + 1}/2): {e}')
+        if attempt < 1:
+            time.sleep(3)
+
+    log('⚠️  NOAA 每日数据不可用，仅使用 SILSO 数据')
+    result['note'] = 'NOAA 数据不可用，SILSO 数据延迟 4-5 天属正常处理周期'
+    return result
+
+
 # ========== 4. 极光可见概率计算（科学公式） ==========
 
 def calc_aurora_probability(kp: float, kp_peak: float = None) -> dict:
@@ -474,6 +534,35 @@ def main():
     # 6.2 加载日度黑子数
     daily = load_silso_daily()
 
+    # 6.2.1 获取 NOAA 补充数据（延迟更低，约 1 天）
+    noaa_daily = fetch_noaa_daily_solar()
+
+    # 计算 SILSO 数据延迟天数
+    silso_date = daily.get('latest_date', '')
+    data_delay_days = 999
+    if silso_date:
+        try:
+            parts = silso_date.split('-')
+            data_date = datetime(int(parts[0]), int(parts[1]), int(parts[2]))
+            data_delay_days = (now - data_date).days
+        except (ValueError, IndexError):
+            pass
+
+    # 如果 SILSO 数据延迟 > 7 天且 NOAA 数据可用，优先使用 NOAA 数据
+    if data_delay_days > 7 and noaa_daily.get('success'):
+        log(f'📌 SILSO 数据延迟 {data_delay_days} 天，使用 NOAA 补充数据')
+        sn_val = noaa_daily['sunspot']
+        sn_date = noaa_daily['date']
+        sn_source = noaa_daily['source']
+        sn_note = f'SILSO 数据延迟 {data_delay_days} 天，自动切换为 NOAA 每日太阳数据（初步值，未经 SILSO 最终校准）'
+    else:
+        sn_val = daily['latest_value'] if daily.get('success') else 40
+        sn_date = daily.get('latest_date', '未知')
+        sn_source = 'SILSO 比利时皇家天文台（日度实测）'
+        sn_note = '每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构'
+        if data_delay_days > 4:
+            sn_note += f'。当前数据延迟 {data_delay_days} 天（SILSO 正常处理周期 4-5 天）'
+
     # 6.3 从日度数据计算 13 月平均（最可靠方式）
     # 需要完整的日度数据（从 SILSO CSV 解析全部历史）
     all_daily_data = load_silso_daily_full()
@@ -489,7 +578,6 @@ def main():
     aurora = calc_aurora_probability(kp_val, kp_peak=kp_peak)
 
     # 6.6 耀斑预报
-    sn_val = daily['latest_value'] if daily.get('success') else 40
     monthly_avg = monthly.get('monthly_avg_13months', sn_val)
     flare = estimate_flare_forecast(sn_val, monthly_avg)
 
@@ -498,17 +586,20 @@ def main():
         'generated_at': timestamp,
         'data_source': {
             'sunspot_daily': daily['source'],
+            'sunspot_noaa': noaa_daily.get('source', '不可用'),
             'sunspot_monthly': 'SILSO 日度数据聚合（从日度实测值计算月均值）',
             'kp_index': kp_data['source'],
             'aurora_formula': 'Kp_peak = 3 + 0.05 × R；Kp_min = (90 − 地磁纬度) / 10；P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))',
             'flare': flare['source']
         },
         'official_sunspot': {
-            'date': daily.get('latest_date', '未知'),
+            'date': sn_date,
             'value': sn_val,
-            'source': 'SILSO 比利时皇家天文台（日度实测）',
+            'source': sn_source,
             'description': '太阳黑子相对数（沃尔夫数 R = k × (10g + f)）',
-            'note': '每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构'
+            'note': sn_note,
+            'delay_days': data_delay_days,
+            'preliminary': data_delay_days > 7 and noaa_daily.get('success', False)
         },
         'official_kp': {
             'value': kp_val,
@@ -539,7 +630,10 @@ def main():
         json.dump(output, f, ensure_ascii=False, indent=2)
 
     log(f'✅ 数据已写入: {OUTPUT_JSON}')
-    log(f'   日度黑子数: {output["official_sunspot"]["value"]}（{output["official_sunspot"]["date"]}）')
+    log(f'   黑子数: {sn_val}（{sn_date}）来源: {sn_source[:50]}')
+    log(f'   SILSO 数据延迟: {data_delay_days} 天')
+    if noaa_daily.get('success'):
+        log(f'   NOAA 补充数据: {noaa_daily["date"]} 黑子数 {noaa_daily["sunspot"]}')
     log(f'   13 月平均: {monthly_avg}')
     log(f'   当前 Kp: {kp_val}（{"估算/典型值" if kp_data.get("kp_estimated") else "NOAA 实测"}）')
     log(f'   理论上限 Kp_peak: {kp_peak}（仅科普展示，不代入极光概率）')
