@@ -392,19 +392,25 @@ def fetch_noaa_daily_solar() -> dict:
     return result
 
 
-# ========== 4. 极光可见概率计算（科学公式） ==========
+# ========== 4. 极光可见概率计算（科普简化模型） ==========
 
 def calc_aurora_probability(kp: float, kp_peak: float = None) -> dict:
     """
-    根据 Kp 指数和各地纬度计算极光可见概率。
+    根据 Kp 指数和各地纬度估算极光可见概率（** 科普简化模型，仅供教学演示 **）。
 
-    公式（地磁学公认模型）：
+    ⚠️ 重要科学限制：
+      1. 真实极光可见性取决于：行星际磁场南向分量(Bz)、地方时(午夜前后)、天气、光污染、季节(夏季极昼完全看不到)
+         单靠 Kp 计算的概率只能做最粗略的科普量级示意，没有实际预报价值
+      2. 实际极光预报请参考 NOAA 空间天气预测中心 OVATION 模型实时数据
+
+    计算公式（地磁学公认的 Kp 阈值模型，仅为 Kp 与极光带最低关系的教学近似）：
       ① Kp_min = (90 − 地磁纬度) / 10      （地磁纬度 ≈ 地理纬度 − 7°）
       ② P = 100 × min(1, max(0, (Kp − Kp_min) / (9 − Kp_min)))
 
     参数：
-      kp:      当前实际/典型 Kp（用于计算当前极光概率）
-      kp_peak: 活动周期理论上限 Kp（用于展示"地磁暴期间峰值概率"，可为 None）
+      kp:      当前实际/典型 Kp（用于计算当前极光概率量级）
+      kp_peak: 活动周期参考上限 Kp = 3 + 0.05×R（R=13月平均黑子数，**非实测/非预报值**，仅科普展示当前周期的地磁暴最大潜力参考）
+               ⚠️ 该公式无严格地磁学理论推导，R 为 13 月滑动平均而非单日值，不得作为预报使用
     """
     locations = [
         {'name_cn': '漠河', 'lat_geo': 53, 'lat_geomag': 46},
@@ -442,9 +448,9 @@ def calc_aurora_probability(kp: float, kp_peak: float = None) -> dict:
         if kp <= kp_min:
             desc = f'当前 Kp={kp} < 阈值 Kp_min={kp_min:.1f}，概率趋近于零'
         elif kp >= 9:
-            desc = '强地磁暴期间，极光可见概率极高'
+            desc = '极强地磁暴期间，极光可见概率极高'
         else:
-            desc = f'当前 Kp={kp}，Kp_min={kp_min:.1f}，公式计算概率={prob}%'
+            desc = f'当前 Kp={kp}，Kp_min={kp_min:.1f}，公式计算概率≈{prob}%（粗略量级）'
 
         entry = {
             'location': loc['name_cn'],
@@ -458,16 +464,19 @@ def calc_aurora_probability(kp: float, kp_peak: float = None) -> dict:
             'formula': f'P = 100 × ({kp} - {kp_min:.1f}) / (9 - {kp_min:.1f}) ≈ {prob}%'
         }
 
-        # 峰值概率（基于活动周期理论上限，仅科普展示）
+        # 活动周期参考概率（基于 R=13月均值 的近似参考，非预报）
         if kp_peak is not None and kp_peak > kp:
             peak_prob, peak_level = _calc_prob(kp_peak, kp_min)
             entry['peak_probability'] = peak_prob
             entry['peak_level'] = peak_level
-            entry['peak_desc'] = f'若发生地磁暴（Kp 达到周期上限 {kp_peak}），概率可达 {peak_prob}%'
+            entry['peak_desc'] = (
+                f'当前太阳活动周期下，若发生极端地磁暴（Kp 达到周期参考上限 {kp_peak}，'
+                f'R=13月均值代入近似公式），概率可达 {peak_prob}%'
+            )
         else:
             entry['peak_probability'] = prob
             entry['peak_level'] = level
-            entry['peak_desc'] = '当前 Kp 已接近或达到周期上限'
+            entry['peak_desc'] = '当前 Kp 已接近或超过周期参考上限'
 
         results.append(entry)
 
@@ -484,9 +493,21 @@ def calc_aurora_probability(kp: float, kp_peak: float = None) -> dict:
     return {
         'kp_value': kp,
         'kp_peak_potential': kp_peak if kp_peak is not None else kp,
+        'kp_peak_formula_note': (
+            'Kp_peak ≈ 3 + 0.05×R（R=13月平均太阳黑子数）为太阳活动周期的粗略经验参考，'
+            '无严格地磁学理论推导，不得作为预报使用'
+        ),
         'kp_description': kp_desc,
         'locations': results,
-        'formula_source': '地磁学公认模型：Kp_min = (90 - 地磁纬度) / 10'
+        'formula_source': (
+            'Kp_min = (90 - 地磁纬度) / 10 为 Kp 阈值的科普近似模型。'
+            '⚠️ 单靠 Kp 计算极光概率仅作教学演示，实际预报请参考 NOAA OVATION 模型'
+        ),
+        'scientific_disclaimer': (
+            '本概率模型为教学科普简化版，仅根据 Kp 指数计算，'
+            '未考虑行星际磁场 Bz 南向分量、地方时、天气光污染、季节(夏季高纬极昼看不到极光)等关键因素，'
+            '不得用于规划极光观测。专业极光预报请查询 NOAA SWPC 30 分钟预报。'
+        )
     }
 
 
