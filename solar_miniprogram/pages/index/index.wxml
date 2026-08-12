@@ -9,7 +9,7 @@
 
   <!-- 官方实测数据卡片 -->
   <view class="card official-data-card" wx:if="{{officialVal > 0}}">
-    <view class="official-data-title">📡 SILSO 官方实测</view>
+    <view class="official-data-title">{{officialTitle}}</view>
     <view class="official-data-row">
       <text class="official-data-val">{{officialVal}}</text>
       <text class="official-data-unit">黑子数</text>
@@ -20,6 +20,7 @@
     </view>
     <view class="freshness-badge freshness-{{dataFreshnessLevel}}">
       <text>{{dataFreshness}}</text>
+      <text class="preliminary-tag" wx:if="{{officialPreliminary}}">初步值</text>
     </view>
   </view>
 
@@ -151,7 +152,7 @@
   </view>
 
   <view class="footer">
-    <text>💡 数据来源：SILSO 官方实测 + LSTM 预测 + NASA SDO 实拍图</text>
+    <text>💡 数据：SILSO / NOAA 官方 · LSTM 预测 · NASA SDO 实拍</text>
     <view class="cdn-status">
       <text class="cdn-status-dot {{cdnStatus === '已更新' ? 'dot-online' : 'dot-local'}}">●</text>
       <text class="cdn-status-text">官方数据{{cdnStatus}}</text>
