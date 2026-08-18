@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-17 03:16:21",
+  "generated_at": "2026-08-18 03:10:36",
   "data_source": {
     "sunspot_daily": "SILSO 日度数据（比利时皇家天文台，每日实测）",
     "sunspot_noaa": "NOAA SWPC 每日太阳数据",
@@ -13,8 +13,8 @@
     "value": 118.0,
     "source": "SILSO 比利时皇家天文台（日度实测）",
     "description": "太阳黑子相对数（沃尔夫数 R = k × (10g + f)）",
-    "note": "每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构。当前数据延迟 17 天（SILSO 正常处理周期 4-5 天）",
-    "delay_days": 17,
+    "note": "每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构。当前数据延迟 18 天（SILSO 正常处理周期 4-5 天）",
+    "delay_days": 18,
     "preliminary": false
   },
   "official_kp": {
