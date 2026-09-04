@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-03 00:15:08",
+  "generated_at": "2026-09-04 00:13:41",
   "data_source": {
     "sunspot_daily": "SILSO 日度数据（比利时皇家天文台，每日实测）",
     "sunspot_noaa": "NOAA SWPC 每日太阳数据",
@@ -14,7 +14,7 @@
     "source": "SILSO 比利时皇家天文台（日度实测）",
     "description": "太阳黑子相对数（沃尔夫数 R = k × (10g + f)）",
     "note": "每日实测数据，SILSO 是国际太阳黑子数的官方基准发布机构",
-    "delay_days": 3,
+    "delay_days": 4,
     "preliminary": false
   },
   "official_kp": {
